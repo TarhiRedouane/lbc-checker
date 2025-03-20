@@ -162,11 +162,26 @@ function createCategoryElement(menuId, category) {
   categoryDiv.className = 'category';
   categoryDiv.dataset.menuId = menuId;
   
+  // Create the category header with title and actions
+  const headerDiv = document.createElement('div');
+  headerDiv.className = 'category-header';
+  
   // Create the category title
   const titleDiv = document.createElement('div');
   titleDiv.className = 'category-title';
   titleDiv.innerHTML = `<i class="${category.icon}"></i> ${category.name}`;
-  categoryDiv.appendChild(titleDiv);
+  headerDiv.appendChild(titleDiv);
+  
+  // Create restore defaults button
+  const restoreButton = document.createElement('button');
+  restoreButton.className = 'restore-defaults';
+  restoreButton.innerHTML = '<i class="fas fa-undo-alt"></i> Restore Default Links';
+  restoreButton.addEventListener('click', () => {
+    restoreDefaultLinks(menuId, categoryDiv);
+  });
+  headerDiv.appendChild(restoreButton);
+  
+  categoryDiv.appendChild(headerDiv);
   
   // Create the links container
   const linksContainer = document.createElement('div');
@@ -190,6 +205,32 @@ function createCategoryElement(menuId, category) {
   categoryDiv.appendChild(addLinkButton);
   
   return categoryDiv;
+}
+
+// Restore default links for a specific category
+function restoreDefaultLinks(menuId, categoryElement) {
+  if (defaultCategories[menuId]) {
+    // Show confirmation dialog
+    if (confirm(`Are you sure you want to restore default links for "${defaultCategories[menuId].name}"? This will replace all your custom links for this category.`)) {
+      const linksContainer = categoryElement.querySelector('.links-container');
+      linksContainer.innerHTML = ''; // Clear existing links
+      
+      // Add default links back
+      defaultCategories[menuId].links.forEach(link => {
+        const linkItem = createLinkItem(link);
+        linksContainer.appendChild(linkItem);
+      });
+      
+      // Show confirmation message
+      const savedMessage = document.getElementById('saved-message');
+      savedMessage.textContent = `Default links restored for ${defaultCategories[menuId].name}`;
+      savedMessage.style.display = 'block';
+      setTimeout(() => {
+        savedMessage.textContent = 'Settings saved successfully!';
+        savedMessage.style.display = 'none';
+      }, 3000);
+    }
+  }
 }
 
 // Create a link input item
