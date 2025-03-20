@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 9px;
+      width: 200px;
+      background: linear-gradient(to right, #f3f4f6, #dfe9f3); /* Styled background */
+    }
+    .title {
+      font-size: 12px; /* Reduced font size */
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 5px;
+      padding: 8px; /* Reduced padding */
+      background-color: #28a745;
+      color: white;
+      border-radius: 5px;
+      border: 0px solid black;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .title i {
+      margin: 0 5px; /* Space between text and icons */
+    }
+    .menu-item {
+      position: relative;
+      margin: 5px 0;
+      padding: 5px;
+      background-color: #007bff;
+      color: white;
+      text-align: center;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 0px solid black;
+      font-size: 12px;
+    }
+    .menu-item i {
+      margin-right: 5px;
+    }
+    .menu-item:hover {
+      background-color: #0056b3;
+    }
+    .footer {
+      font-size: 10px;
+      text-align: center;
+      margin-top: 10px;
+      color: #A9A9A9;
+    }
+    .footer .bold-text {
+      font-weight: bold;
+    }
+    .footer img {
+      margin-top: 5px;
+      width: 50px;
+      height: 16px;
+    }
+    .footer .version {
+      font-size: 10px;
+      color: grey;
+    }
+    .close-tabs {
+      background-color: #808080; /* Gray color for Close All Tabs */
+      margin: 5px 0;
+      padding: 5px;
+      color: white;
+      text-align: center;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 0px solid black;
+      font-size: 12px;
+    }
+    .close-tabs:hover {
+      background-color: #606060; /* Darker gray on hover */
+    }
+    .close-tabs i {
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="title">
+    <i class="fas fa-shield-alt"></i> <!-- First Icon -->
+    LBC Checker
+    <i class="fas fa-shield-alt"></i> <!-- First Icon -->
+  </div>
+  <div class="menu-item" id="menu1">
+    <i class="fas fa-check"></i>Page Checker
+  </div>
+  <div class="menu-item" id="menu2">
+    <i class="fas fa-user"></i>Profile Checker
+  </div>
+  
+  <div class="menu-item" id="menu6">
+    <i class="fas fa-briefcase"></i>BM Checker
+  </div> 
+  
+  <div class="menu-item" id="menu3">
+    <i class="fas fa-broom"></i>New Account Checker
+  </div>
+  
+  <div class="menu-item" id="menu9">
+    <i class="fas fa-user-cog"></i>Admins Manager
+  </div>
+  
+  <div class="menu-item" id="menu4">
+    <i class="fas fa-globe"></i>Country Restriction
+  </div>
+  
+  
+  <div class="menu-item" id="menu10">
+    <i class="fas fa-tools"></i>Moderation Assist
+  </div> 
+  
+  <div class="menu-item" id="menu7">
+    <i class="fas fa-plus"></i>FB Page Creator
+  </div>
+  
+  <div class="menu-item" id="menu5">
+    <i class="fas fa-users"></i>FB Group Creator
+  </div>
+  
+  <div class="close-tabs" id="close-all-tabs">
+    <i class="fas fa-times-circle"></i>Close All Tabs
+  </div>
+
+  <div class="footer">
+    <span class="bold-text">LBC</span>
+    <br>
+    
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
