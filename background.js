@@ -127,3 +127,133 @@ chrome.tabs.onRemoved.addListener((tabId) => {
     console.log(`Tab ${tabId} was closed manually and removed from tracking`);
   }
 });
+
+// ================ NOTIFICATION SYSTEM ================
+
+// Handle alarm events for reminders
+chrome.alarms.onAlarm.addListener((alarm) => {
+  // Check if this is a reminder alarm (they all start with "reminder-")
+  if (alarm.name.startsWith('reminder-')) {
+    console.log(`Alarm triggered: ${alarm.name}`);
+    
+    // Get the reminder data associated with this alarm
+    chrome.storage.local.get([alarm.name, 'categories'], (result) => {
+      const reminder = result[alarm.name];
+      const categories = result.categories;
+      
+      if (reminder && categories) {
+        const category = categories[reminder.categoryId];
+        
+        if (category) {
+          console.log(`Showing notification for category: ${category.name}`);
+          
+          // Create notification
+          chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'icon.png',
+            title: 'LBC Checker Reminder',
+            message: `Time to check: ${category.name}`,
+            buttons: [
+              { title: 'Open Now' },
+              { title: 'Dismiss' }
+            ],
+            priority: 2,
+            requireInteraction: true // Notification persists until user interacts with it
+          }, (notificationId) => {
+            // Store the reminder and category info with the notification ID
+            chrome.storage.local.set({
+              ['notification-' + notificationId]: {
+                reminderAlarm: alarm.name,
+                categoryId: reminder.categoryId,
+                time: new Date().toLocaleString()
+              }
+            }, () => {
+              console.log(`Stored notification data for ${notificationId}`);
+            });
+          });
+          
+          // Reschedule the alarm for the next applicable day
+          // The existing alarm is daily, but let's make sure it's only on the days selected
+          scheduleNextAlarm(alarm.name, reminder);
+        }
+      }
+    });
+  }
+});
+
+// Function to schedule the next alarm based on selected days
+function scheduleNextAlarm(alarmName, reminder) {
+  // Get today's day of week (0 = Sunday, 1 = Monday, etc.)
+  const today = new Date().getDay();
+  
+  // Find the next day that is enabled for this reminder
+  let daysToAdd = 1;
+  let nextDay = (today + daysToAdd) % 7;
+  
+  while (!reminder.days.includes(nextDay) && daysToAdd < 7) {
+    daysToAdd++;
+    nextDay = (today + daysToAdd) % 7;
+  }
+  
+  console.log(`Next alarm for ${alarmName} will be in ${daysToAdd} days (${nextDay})`);
+}
+
+// Handle notification button clicks
+chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) => {
+  console.log(`Notification ${notificationId} button ${buttonIndex} clicked`);
+  
+  chrome.storage.local.get(['notification-' + notificationId, 'categories'], (result) => {
+    const notificationData = result['notification-' + notificationId];
+    
+    if (notificationData) {
+      if (buttonIndex === 0) { // Open Now button
+        const categoryId = notificationData.categoryId;
+        const categories = result.categories;
+        
+        if (categories && categories[categoryId]) {
+          // Get the links for this category
+          const links = categories[categoryId].links;
+          
+          if (links && links.length > 0) {
+            // Instead of sending a message, directly open the links
+            chrome.storage.local.get(['sequentialMode', 'openDelay'], function(settings) {
+              const sequentialMode = settings.sequentialMode || false;
+              const delay = settings.openDelay || 0;
+              
+              console.log('Opening links from notification with settings:', {
+                sequentialMode: sequentialMode,
+                delay: delay
+              });
+              
+              if (sequentialMode && delay > 0) {
+                console.log(`Opening ${links.length} links sequentially with ${delay}ms delay`);
+                openLinksSequentially(links, delay);
+              } else {
+                console.log(`Opening ${links.length} links simultaneously`);
+                links.forEach(link => {
+                  if (link && typeof link === 'string' && link.trim()) {
+                    createTab(link);
+                  }
+                });
+              }
+            });
+          }
+        }
+      }
+      
+      // Clear the notification data
+      chrome.storage.local.remove(['notification-' + notificationId]);
+    }
+  });
+  
+  // Close the notification
+  chrome.notifications.clear(notificationId);
+});
+
+// Handle notification closed event (dismiss)
+chrome.notifications.onClosed.addListener((notificationId) => {
+  console.log(`Notification ${notificationId} closed`);
+  
+  // Clean up storage
+  chrome.storage.local.remove(['notification-' + notificationId]);
+});

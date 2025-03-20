@@ -431,6 +431,170 @@
       margin-right: 5px;
       color: var(--fb-green);
     }
+
+    /* Reminder system styles */
+    .reminders-section {
+      margin-bottom: 20px;
+      background-color: var(--fb-light-card);
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    
+    .dark-mode .reminders-section {
+      background-color: var(--fb-dark-card);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+    
+    .reminder-item {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--fb-border-light);
+      border-radius: 8px;
+      margin-bottom: 10px;
+      transition: all 0.2s ease;
+    }
+    
+    .dark-mode .reminder-item {
+      border-color: #3E4042;
+    }
+    
+    .reminder-item:hover {
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .reminder-details {
+      flex-grow: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    
+    .reminder-select {
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--fb-border-light);
+      min-width: 150px;
+      background-color: var(--fb-light-card);
+      color: var(--fb-text-dark);
+    }
+    
+    .dark-mode .reminder-select {
+      background-color: var(--fb-dark);
+      border-color: #3E4042;
+      color: var(--fb-text-light);
+    }
+    
+    .reminder-time-input {
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--fb-border-light);
+      background-color: var(--fb-light-card);
+      color: var(--fb-text-dark);
+    }
+    
+    .dark-mode .reminder-time-input {
+      background-color: var(--fb-dark);
+      border-color: #3E4042;
+      color: var(--fb-text-light);
+    }
+    
+    .reminder-active {
+      display: flex;
+      align-items: center;
+      margin-left: 10px;
+    }
+    
+    .reminder-active-label {
+      margin-right: 8px;
+      font-weight: 600;
+    }
+    
+    .reminder-delete {
+      color: #FA383E;
+      cursor: pointer;
+      margin-left: 10px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background-color 0.2s;
+    }
+    
+    .reminder-delete:hover {
+      background-color: rgba(250, 56, 62, 0.1);
+    }
+    
+    .dark-mode .reminder-delete:hover {
+      background-color: rgba(250, 56, 62, 0.2);
+    }
+    
+    .add-reminder {
+      background-color: var(--fb-green);
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 10px;
+      display: inline-flex;
+      align-items: center;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+    
+    .add-reminder i {
+      margin-right: 8px;
+    }
+    
+    .add-reminder:hover {
+      background-color: var(--fb-green-hover);
+    }
+    
+    .reminder-days {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      margin-top: 5px;
+    }
+    
+    .day-checkbox {
+      display: none;
+    }
+    
+    .day-label {
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background-color: var(--fb-light-bg);
+      color: var(--fb-text-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--fb-border-light);
+      transition: all 0.2s ease;
+    }
+    
+    .dark-mode .day-label {
+      background-color: var(--fb-dark);
+      color: var(--fb-text-light);
+      border-color: #3E4042;
+    }
+    
+    .day-checkbox:checked + .day-label {
+      background-color: var(--fb-blue);
+      color: white;
+      border-color: var(--fb-blue);
+    }
   </style>
 </head>
 <body>
@@ -471,6 +635,23 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <div class="reminders-section">
+    <div class="category-title">
+      <i class="fas fa-bell"></i> Notification Reminders
+    </div>
+    <div class="setting-description">
+      Schedule reminders to visit specific links at set times. The extension will show a notification when it's time.
+    </div>
+    
+    <div id="reminders-container">
+      <!-- Reminder items will be added here -->
+    </div>
+    
+    <button class="add-reminder" id="add-reminder">
+      <i class="fas fa-plus"></i> Add Reminder
+    </button>
   </div>
 
   <div class="notes-section">
