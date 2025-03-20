@@ -3,112 +3,227 @@
 <head>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
+    :root {
+      --fb-blue: #1877F2;
+      --fb-blue-hover: #166FE5;
+      --fb-green: #42b72a;
+      --fb-green-hover: #36A420;
+      --fb-dark: #18191A;
+      --fb-dark-card: #242526;
+      --fb-light-bg: #F0F2F5;
+      --fb-light-card: #FFFFFF;
+      --fb-text-dark: #050505;
+      --fb-text-light: #E4E6EB;
+      --fb-text-secondary: #65676B;
+      --fb-border-light: #CED0D4;
+    }
+    
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
       margin: 0;
-      padding: 9px;
-      width: 200px;
-      transition: background 0.3s, color 0.3s;
+      padding: 12px;
+      width: 250px;
+      transition: all 0.3s ease;
+      border-radius: 8px;
     }
+    
     body.light-mode {
-      background: linear-gradient(to right, #f3f4f6, #dfe9f3);
-      color: #333;
+      background-color: var(--fb-light-bg);
+      color: var(--fb-text-dark);
     }
+    
     body.dark-mode {
-      background: linear-gradient(to right, #2d3748, #1a202c);
-      color: #f7fafc;
+      background-color: var(--fb-dark);
+      color: var(--fb-text-light);
     }
+    
     .title {
-      font-size: 12px; /* Reduced font size */
+      font-size: 16px;
       font-weight: bold;
       text-align: center;
-      margin-bottom: 5px;
-      padding: 8px; /* Reduced padding */
-      background-color: #28a745;
+      margin-bottom: 12px;
+      padding: 10px;
+      background-color: var(--fb-blue);
       color: white;
-      border-radius: 5px;
-      border: 0px solid black;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
+    
+    .light-mode .title {
+      background-color: var(--fb-blue);
+    }
+    
+    .dark-mode .title {
+      background-color: var(--fb-blue);
+    }
+    
     .title i {
-      margin: 0 5px; /* Space between text and icons */
+      margin: 0 8px;
+      font-size: 14px;
     }
+    
+    .menu-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    
     .menu-item {
       position: relative;
-      margin: 5px 0;
-      padding: 5px;
-      background-color: #007bff;
-      color: white;
+      padding: 8px 5px;
+      background-color: var(--fb-light-card);
+      color: var(--fb-blue);
       text-align: center;
-      border-radius: 5px;
+      border-radius: 8px;
       cursor: pointer;
-      transition: background-color 0.3s;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 500;
+      border: 1px solid var(--fb-border-light);
+      height: 40px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    
+    .dark-mode .menu-item {
+      background-color: var(--fb-dark-card);
+      color: var(--fb-text-light);
+      border-color: #3E4042;
+    }
+    
+    .menu-item i {
+      font-size: 14px;
+      margin-bottom: 4px;
+      color: var(--fb-blue);
+    }
+    
+    .dark-mode .menu-item i {
+      color: var(--fb-blue);
+    }
+    
+    .menu-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      background-color: var(--fb-blue);
+      color: white;
+      border-color: var(--fb-blue);
+    }
+    
+    .menu-item:hover i {
+      color: white;
+    }
+    
+    .close-tabs {
+      background-color: var(--fb-light-card);
+      color: #FA383E;
+      margin: 10px 0 5px;
+      padding: 10px;
+      text-align: center;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 0px solid black;
-      font-size: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid var(--fb-border-light);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
-    .menu-item i {
-      margin-right: 5px;
+    
+    .dark-mode .close-tabs {
+      background-color: var(--fb-dark-card);
+      border-color: #3E4042;
     }
-    .menu-item:hover {
-      background-color: #0056b3;
+    
+    .close-tabs:hover {
+      background-color: #FA383E;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
+    
+    .close-tabs i {
+      margin-right: 8px;
+    }
+    
     .footer {
-      font-size: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 11px;
       text-align: center;
-      margin-top: 10px;
-      color: #A9A9A9;
+      margin-top: 12px;
+      color: var(--fb-text-secondary);
+      padding-top: 8px;
+      border-top: 1px solid var(--fb-border-light);
     }
+    
+    .dark-mode .footer {
+      border-color: #3E4042;
+    }
+    
     .footer .bold-text {
       font-weight: bold;
+      color: var(--fb-blue);
     }
-    .footer img {
-      margin-top: 5px;
-      width: 50px;
-      height: 16px;
-    }
+    
     .footer .version {
       font-size: 10px;
-      color: grey;
+      opacity: 0.8;
+      margin-top: 2px;
     }
-    .close-tabs {
-      background-color: #808080; /* Gray color for Close All Tabs */
-      margin: 5px 0;
-      padding: 5px;
-      color: white;
-      text-align: center;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: background-color 0.3s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 0px solid black;
-      font-size: 12px;
-    }
-    .close-tabs:hover {
-      background-color: #606060; /* Darker gray on hover */
-    }
-    .close-tabs i {
-      margin-right: 5px;
-    }
+    
     .mode-toggle {
       position: absolute;
-      top: 10px;
-      right: 10px;
+      top: 12px;
+      right: 12px;
       cursor: pointer;
       z-index: 10;
       font-size: 16px;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background-color 0.2s;
     }
+    
+    .mode-toggle:hover {
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+    
+    .dark-mode .mode-toggle:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    
     .light-mode .mode-toggle {
-      color: #333;
+      color: var(--fb-text-dark);
     }
+    
     .dark-mode .mode-toggle {
-      color: #f7fafc;
+      color: var(--fb-text-light);
+    }
+    
+    .settings-item {
+      background-color: var(--fb-green) !important;
+      color: white !important;
+    }
+    
+    .settings-item i {
+      color: white !important;
+    }
+    
+    .settings-item:hover {
+      background-color: var(--fb-green-hover) !important;
     }
   </style>
 </head>
@@ -118,44 +233,52 @@
   </div>
 
   <div class="title">
-    <i class="fas fa-shield-alt"></i> <!-- First Icon -->
+    <i class="fas fa-shield-alt"></i>
     LBC Checker
-    <i class="fas fa-shield-alt"></i> <!-- First Icon -->
-  </div>
-  <div class="menu-item" id="menu1">
-    <i class="fas fa-check"></i>Page Checker
-  </div>
-  <div class="menu-item" id="menu2">
-    <i class="fas fa-user"></i>Profile Checker
+    <i class="fas fa-shield-alt"></i>
   </div>
   
-  <div class="menu-item" id="menu6">
-    <i class="fas fa-briefcase"></i>BM Checker
-  </div> 
-  
-  <div class="menu-item" id="menu3">
-    <i class="fas fa-broom"></i>New Account Checker
-  </div>
-  
-  <div class="menu-item" id="menu9">
-    <i class="fas fa-user-cog"></i>Admins Manager
-  </div>
-  
-  <div class="menu-item" id="menu4">
-    <i class="fas fa-globe"></i>Country Restriction
-  </div>
-  
-  
-  <div class="menu-item" id="menu10">
-    <i class="fas fa-tools"></i>Moderation Assist
-  </div> 
-  
-  <div class="menu-item" id="menu7">
-    <i class="fas fa-plus"></i>FB Page Creator
-  </div>
-  
-  <div class="menu-item" id="menu5">
-    <i class="fas fa-users"></i>FB Group Creator
+  <div class="menu-container">
+    <div class="menu-item" id="menu1">
+      <i class="fas fa-check"></i>
+      Page Checker
+    </div>
+    <div class="menu-item" id="menu2">
+      <i class="fas fa-user"></i>
+      Profile Checker
+    </div>
+    <div class="menu-item" id="menu6">
+      <i class="fas fa-briefcase"></i>
+      BM Checker
+    </div>
+    <div class="menu-item" id="menu3">
+      <i class="fas fa-broom"></i>
+      New Account
+    </div>
+    <div class="menu-item" id="menu9">
+      <i class="fas fa-user-cog"></i>
+      Admins
+    </div>
+    <div class="menu-item" id="menu4">
+      <i class="fas fa-globe"></i>
+      Country
+    </div>
+    <div class="menu-item" id="menu10">
+      <i class="fas fa-tools"></i>
+      Moderation
+    </div>
+    <div class="menu-item" id="menu7">
+      <i class="fas fa-plus"></i>
+      Page Creator
+    </div>
+    <div class="menu-item" id="menu5">
+      <i class="fas fa-users"></i>
+      Group Creator
+    </div>
+    <div class="menu-item settings-item" id="settings-button">
+      <i class="fas fa-cog"></i>
+      Settings
+    </div>
   </div>
   
   <div class="close-tabs" id="close-all-tabs">
@@ -163,8 +286,7 @@
   </div>
 
   <div class="footer">
-    <span class="bold-text">LBC</span>
-    <br>
+    <span class="bold-text">LBC Checker</span>
     <span class="version">v1.1</span>
   </div>
 
