@@ -94,45 +94,6 @@ document.addEventListener('DOMContentLoaded', function() {
     chrome.runtime.sendMessage({ action: 'closeAllTabs' });
   });
   
-  // Initialize dark mode
-  initDarkMode();
+  // Initialize dark mode with popup flag
+  initDarkMode(true);
 });
-
-// Initialize dark mode from saved preference
-function initDarkMode() {
-  const modeToggle = document.getElementById('mode-toggle');
-  const body = document.body;
-  
-  // Load user preference from storage
-  chrome.storage.local.get(['darkMode'], function(result) {
-    const isDarkMode = result.darkMode === true;
-    
-    // Apply the mode based on saved preference
-    if (isDarkMode) {
-      body.classList.remove('light-mode');
-      body.classList.add('dark-mode');
-      modeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-    } else {
-      body.classList.add('light-mode');
-      body.classList.remove('dark-mode');
-      modeToggle.innerHTML = '<i class="fas fa-moon"></i>';
-    }
-  });
-  
-  // Toggle dark/light mode
-  modeToggle.addEventListener('click', () => {
-    if (body.classList.contains('light-mode')) {
-      // Switch to dark mode
-      body.classList.remove('light-mode');
-      body.classList.add('dark-mode');
-      modeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-      chrome.storage.local.set({ darkMode: true });
-    } else {
-      // Switch to light mode
-      body.classList.add('light-mode');
-      body.classList.remove('dark-mode');
-      modeToggle.innerHTML = '<i class="fas fa-moon"></i>';
-      chrome.storage.local.set({ darkMode: false });
-    }
-  });
-}

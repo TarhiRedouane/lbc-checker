@@ -100,6 +100,9 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.runtime.sendMessage({ action: 'openPopup' });
     window.close();
   });
+
+  // Initialize dark mode with settings flag
+  initDarkMode(false);
 });
 
 // Load general settings from storage
@@ -112,6 +115,24 @@ function loadGeneralSettings() {
     // Open delay input
     const openDelayInput = document.getElementById('open-delay');
     openDelayInput.value = result.openDelay || 500; // Default to 500ms if not set
+
+    console.log('Settings loaded:', {
+      sequentialMode: result.sequentialMode,
+      openDelay: result.openDelay || 500
+    });
+  });
+
+  // Add change event listeners for real-time logging
+  document.getElementById('sequential-mode').addEventListener('change', (e) => {
+    console.log('Sequential mode changed:', {
+      sequentialMode: e.target.checked
+    });
+  });
+
+  document.getElementById('open-delay').addEventListener('input', (e) => {
+    console.log('Delay value changed:', {
+      openDelay: parseInt(e.target.value, 10) || 0
+    });
   });
 }
 
@@ -221,6 +242,11 @@ function saveSettings() {
   const sequentialMode = document.getElementById('sequential-mode').checked;
   const openDelay = parseInt(document.getElementById('open-delay').value, 10) || 0;
   
+  console.log('Settings saved:', {
+    sequentialMode: sequentialMode,
+    openDelay: openDelay
+  });
+
   // Save all settings to Chrome storage
   chrome.storage.local.set({
     categories,

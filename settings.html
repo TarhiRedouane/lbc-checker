@@ -394,41 +394,6 @@
   </div>
 
   <script src="settings.js"></script>
-  <script>
-    // Add dark mode toggle functionality
-    document.addEventListener('DOMContentLoaded', function() {
-      const modeToggle = document.getElementById('mode-toggle');
-      const body = document.body;
-      
-      // Load user preference from storage
-      chrome.storage.local.get(['darkMode'], function(result) {
-        const isDarkMode = result.darkMode === true;
-        
-        // Apply the mode based on saved preference
-        if (isDarkMode) {
-          body.classList.add('dark-mode');
-          modeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-        } else {
-          body.classList.remove('dark-mode');
-          modeToggle.innerHTML = '<i class="fas fa-moon"></i>';
-        }
-      });
-      
-      // Toggle dark/light mode
-      modeToggle.addEventListener('click', () => {
-        if (body.classList.contains('dark-mode')) {
-          // Switch to light mode
-          body.classList.remove('dark-mode');
-          modeToggle.innerHTML = '<i class="fas fa-moon"></i>';
-          chrome.storage.local.set({ darkMode: false });
-        } else {
-          // Switch to dark mode
-          body.classList.add('dark-mode');
-          modeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-          chrome.storage.local.set({ darkMode: true });
-        }
-      });
-    });
-  </script>
+  <script src="darkmode.js"></script>
 </body>
 </html>
