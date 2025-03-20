@@ -80,7 +80,12 @@ document.addEventListener('DOMContentLoaded', function() {
   const menuItems = document.querySelectorAll('.menu-item');
   menuItems.forEach(item => {
     item.addEventListener('click', function() {
-      executeLinks(this.id);
+      if (this.id === 'settings-button') {
+        chrome.runtime.sendMessage({ action: 'openSettings' });
+        window.close(); // Close popup
+      } else {
+        executeLinks(this.id);
+      }
     });
   });
   
@@ -89,34 +94,9 @@ document.addEventListener('DOMContentLoaded', function() {
     chrome.runtime.sendMessage({ action: 'closeAllTabs' });
   });
   
-  // Add settings button
-  createSettingsButton();
-  
   // Initialize dark mode
   initDarkMode();
 });
-
-// Create settings button
-function createSettingsButton() {
-  // Create the settings item
-  const settingsItem = document.createElement('div');
-  settingsItem.className = 'menu-item';
-  settingsItem.id = 'settings-button';
-  settingsItem.style.backgroundColor = '#FF9800'; // Orange color for settings
-  
-  // Add icon and text
-  settingsItem.innerHTML = '<i class="fas fa-cog"></i>Settings';
-  
-  // Add event listener
-  settingsItem.addEventListener('click', () => {
-    chrome.runtime.sendMessage({ action: 'openSettings' });
-    window.close(); // Close popup
-  });
-  
-  // Insert before the close tabs button
-  const closeTabsButton = document.getElementById('close-all-tabs');
-  closeTabsButton.parentNode.insertBefore(settingsItem, closeTabsButton);
-}
 
 // Initialize dark mode from saved preference
 function initDarkMode() {

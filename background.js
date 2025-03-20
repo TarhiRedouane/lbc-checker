@@ -18,12 +18,25 @@ function saveTabIds() {
   });
 }
 
+// Helper function to validate links
+function validateLinks(links) {
+  // If links is null, undefined, or not an array, return an empty array
+  if (!links || !Array.isArray(links)) {
+    console.error('Invalid links format:', links);
+    return [];
+  }
+  return links;
+}
+
 // Function to open links sequentially with delay
 async function openLinksSequentially(links, delay = 0) {
+  // Ensure links is a valid array
+  links = validateLinks(links);
+  
   console.log(`Opening ${links.length} links with ${delay}ms delay`);
   
   for (const link of links) {
-    if (link.trim()) {
+    if (link && typeof link === 'string' && link.trim()) {
       // Create a new tab with the link
       chrome.tabs.create({ url: link.trim() }, (tab) => {
         // Store the ID of the tab
@@ -47,13 +60,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const sequentialMode = result.sequentialMode || false;
       const delay = result.openDelay || 0;
       
+      // Validate links before processing
+      const validLinks = validateLinks(request.links);
+      
+      if (validLinks.length === 0) {
+        console.error('No valid links to open');
+        return;
+      }
+      
       if (sequentialMode && delay > 0) {
         // Open links sequentially with delay
-        openLinksSequentially(request.links, delay);
+        openLinksSequentially(validLinks, delay);
       } else {
         // Open all links at once (original behavior)
-        for (const link of request.links) {
-          if (link.trim()) {
+        for (const link of validLinks) {
+          if (link && typeof link === 'string' && link.trim()) {
             chrome.tabs.create({ url: link.trim() }, (tab) => {
               openedTabs.add(tab.id);
               saveTabIds();
