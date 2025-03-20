@@ -93,6 +93,7 @@ const defaultCategories = {
 document.addEventListener('DOMContentLoaded', () => {
   loadCategories();
   loadGeneralSettings();
+  loadNotes();
   
   // Event listeners
   document.getElementById('save-settings').addEventListener('click', saveSettings);
@@ -103,6 +104,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize dark mode with settings flag
   initDarkMode(false);
+
+  // Setup notes auto-save
+  setupNotesAutoSave();
 });
 
 // Load general settings from storage
@@ -241,6 +245,7 @@ function saveSettings() {
   // Save general settings
   const sequentialMode = document.getElementById('sequential-mode').checked;
   const openDelay = parseInt(document.getElementById('open-delay').value, 10) || 0;
+  const notes = document.getElementById('notes-content').value;
   
   console.log('Settings saved:', {
     sequentialMode: sequentialMode,
@@ -251,7 +256,8 @@ function saveSettings() {
   chrome.storage.local.set({
     categories,
     sequentialMode,
-    openDelay
+    openDelay,
+    notes
   }, () => {
     // Show saved message
     const savedMessage = document.getElementById('saved-message');
@@ -259,5 +265,41 @@ function saveSettings() {
     setTimeout(() => {
       savedMessage.style.display = 'none';
     }, 3000);
+  });
+}
+
+// Load notes from storage
+function loadNotes() {
+  chrome.storage.local.get(['notes'], (result) => {
+    const notesTextarea = document.getElementById('notes-content');
+    if (result.notes) {
+      notesTextarea.value = result.notes;
+    }
+  });
+}
+
+// Setup auto-save functionality for notes
+function setupNotesAutoSave() {
+  const notesTextarea = document.getElementById('notes-content');
+  const autoSaveIndicator = document.getElementById('auto-save-indicator');
+  let saveTimeout;
+
+  notesTextarea.addEventListener('input', () => {
+    // Clear any pending save
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+    }
+
+    // Set a new timeout to save after 500ms of no typing
+    saveTimeout = setTimeout(() => {
+      chrome.storage.local.set({ notes: notesTextarea.value }, () => {
+        // Show save indicator
+        autoSaveIndicator.style.display = 'flex';
+        // Hide it after 2 seconds
+        setTimeout(() => {
+          autoSaveIndicator.style.display = 'none';
+        }, 2000);
+      });
+    }, 500);
   });
 }
