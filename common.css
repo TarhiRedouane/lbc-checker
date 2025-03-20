@@ -1,0 +1,58 @@
+/* Common CSS variables for the LBC Checker extension */
+:root {
+  --fb-blue: #1877F2;
+  --fb-blue-hover: #166FE5;
+  --fb-green: #42b72a;
+  --fb-green-hover: #36A420;
+  --fb-dark: #18191A;
+  --fb-dark-card: #242526;
+  --fb-light-bg: #F0F2F5;
+  --fb-light-card: #FFFFFF;
+  --fb-text-dark: #050505;
+  --fb-text-light: #E4E6EB;
+  --fb-text-secondary: #65676B;
+  --fb-border-light: #CED0D4;
+}
+
+/* Common theme styles */
+body {
+  font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+  transition: all 0.3s ease;
+}
+
+body.light-mode {
+  background-color: var(--fb-light-bg);
+  color: var(--fb-text-dark);
+}
+
+body.dark-mode {
+  background-color: var(--fb-dark);
+  color: var(--fb-text-light);
+}
+
+/* Common dark/light mode toggle */
+.mode-toggle {
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.mode-toggle:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.dark-mode .mode-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.light-mode .mode-toggle {
+  color: var(--fb-text-dark);
+}
+
+.dark-mode .mode-toggle {
+  color: var(--fb-text-light);
+}
