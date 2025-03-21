@@ -2,88 +2,66 @@
 <html>
 <head>
   <title>LBC Checker Settings</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <link rel="stylesheet" href="settings.css">
 </head>
 <body>
-  <div class="mode-toggle" id="mode-toggle">
-    <i class="fas fa-moon"></i>
-  </div>
+  <button id="back-to-popup" class="back-button"><i class="fas fa-arrow-left"></i> Back</button>
+  <button id="mode-toggle" class="mode-toggle"><i class="fas fa-moon"></i></button>
   
-  <button class="back-button" id="back-to-popup">
-    <i class="fas fa-arrow-left"></i> Back
-  </button>
+  <h1><i class="fas fa-cog"></i> Settings</h1>
   
-  <h1><i class="fas fa-cog"></i> LBC Checker Settings</h1>
-  
+  <!-- General Settings -->
   <div class="general-settings">
-    <div class="category-title">
-      <i class="fas fa-sliders-h"></i> General Settings
-    </div>
-    
     <div class="setting-row">
-      <div class="setting-label">Sequential Tab Opening</div>
+      <label class="setting-label" for="sequential-mode">Sequential Mode</label>
       <div class="setting-control">
         <label class="toggle-switch">
           <input type="checkbox" id="sequential-mode">
           <span class="slider"></span>
         </label>
-        <div class="setting-description">
-          Open tabs one after another instead of all at once
-        </div>
+        <div class="setting-description">Open links one after another instead of all at once</div>
       </div>
     </div>
     
     <div class="setting-row">
-      <div class="setting-label">Tab Open Delay (ms)</div>
+      <label class="setting-label" for="open-delay">Open Delay (ms)</label>
       <div class="setting-control">
-        <input type="number" id="open-delay" class="delay-input" min="0" step="100" value="500">
-        <div class="setting-description">
-          Time between opening tabs. Higher values (500ms+) can prevent browser blocking.
-        </div>
+        <input type="number" id="open-delay" class="delay-input" min="0" step="100">
+        <div class="setting-description">Delay between opening each link in sequential mode</div>
       </div>
     </div>
   </div>
 
+  <!-- Categories -->
+  <div id="categories-container"></div>
+
+  <!-- Reminders -->
   <div class="reminders-section">
-    <div class="category-title">
-      <i class="fas fa-bell"></i> Notification Reminders
-    </div>
-    <div class="setting-description">
-      Schedule reminders to visit specific links at set times. The extension will show a notification when it's time.
-    </div>
-    
-    <div id="reminders-container">
-      <!-- Reminder items will be added here -->
-    </div>
-    
-    <button class="add-reminder" id="add-reminder">
-      <i class="fas fa-plus"></i> Add Reminder
-    </button>
+    <h2>Reminders</h2>
+    <div id="reminders-container"></div>
+    <button id="add-reminder" class="add-reminder"><i class="fas fa-plus"></i> Add Reminder</button>
   </div>
 
+  <!-- Notes -->
   <div class="notes-section">
-    <div class="category-title">
-      <i class="fas fa-sticky-note"></i> Notes
-    </div>
-    <textarea id="notes-content" class="notes-textarea" placeholder="Write your notes here. They will be automatically saved."></textarea>
+    <h2>Notes</h2>
+    <textarea id="notes-content" class="notes-textarea" placeholder="Add your notes here..."></textarea>
     <div id="auto-save-indicator" class="auto-save-indicator">
-      <i class="fas fa-check-circle"></i> Changes saved
+      <i class="fas fa-check-circle"></i> Saved
     </div>
-  </div>
-  
-  <div id="categories-container">
-    <!-- Categories will be dynamically added here -->
-  </div>
-  
-  <button class="save-button" id="save-settings">
-    Save Settings
-  </button>
-  <div class="saved-message" id="saved-message">
-    Settings saved successfully!
   </div>
 
-  <script src="settings.js"></script>
+  <button id="save-settings" class="save-button">Save Settings</button>
+  <div id="saved-message" class="saved-message">Settings saved successfully!</div>
+
+  <!-- Scripts -->
   <script src="darkmode.js"></script>
+  <script src="settings-data.js"></script>
+  <script src="settings-categories.js"></script>
+  <script src="settings-general.js"></script>
+  <script src="settings-reminders.js"></script>
+  <script src="settings-notes.js"></script>
+  <script src="settings.js"></script>
 </body>
 </html>
