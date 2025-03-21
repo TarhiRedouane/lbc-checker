@@ -1,96 +1,7 @@
 // Store opened tab IDs in persistent storage
 let openedTabs = new Set();
-
-// Default categories data for initialization
-const defaultCategories = {
-  'menu1': {
-    name: 'Page Checker',
-    icon: 'fas fa-check',
-    links: [
-      "https://www.facebook.com/account_status",
-      "https://www.facebook.com/support/?tab_type=APPEALS",
-      "https://www.facebook.com/settings/?tab=profile_recommendations&show_recommendable_nux=0",
-      "https://www.facebook.com/settings/?tab=profile_management_history"
-    ]
-  },
-  'menu2': {
-    name: 'Profile Checker',
-    icon: 'fas fa-user',
-    links: [
-      "https://www.facebook.com/account_status",
-      "https://www.facebook.com/accountquality",
-      "https://business.facebook.com/billing_hub/payment_activity?asset_id=",
-      "https://www.facebook.com/id/hub/",
-      "https://business.facebook.com/latest/monetization/monetization_policy_issues/monetization_policy_issues_violations?asset_id=",
-      "https://www.facebook.com/support/?tab_type=APPEALS",
-      "https://www.facebook.com/settings/identity_confirmation/",
-      "https://www.facebook.com/primary_location/info?_rdc=2&_rdr",
-      "https://adsmanager.facebook.com/adsmanager/manage/ad_account_settings/ad_account_setup",
-      "https://business.facebook.com/business-support-home/contact-support",
-      "https://adsmanager.facebook.com/adsmanager/manage/accounts?act="
-    ]
-  },
-  'menu3': {
-    name: 'New Account Checker',
-    icon: 'fas fa-broom',
-    links: [
-      "https://www.facebook.com/profile_status/?referrer=profile_settings",
-      "https://accountscenter.facebook.com/personal_info",
-      "https://www.facebook.com/your_information/?tab=your_information&tile=personal_info_grouping",
-      "https://accountscenter.facebook.com/password_and_security",
-      "https://www.facebook.com/notifications",
-      "https://www.facebook.com/business-support-home/"
-    ]
-  },
-  'menu4': {
-    name: 'Country Restriction',
-    icon: 'fas fa-globe',
-    links: [
-      "https://www.facebook.com/settings/?tab=followers_and_public_content"
-    ]
-  },
-  'menu5': {
-    name: 'FB Group Creator',
-    icon: 'fas fa-users',
-    links: [
-      "https://www.facebook.com/groups/create/"
-    ]
-  },
-  'menu6': {
-    name: 'BM Checker',
-    icon: 'fas fa-briefcase',
-    links: [
-      "https://business.facebook.com/billing_hub/payment_activity?asset_id=",
-      "https://business.facebook.com/latest/settings/ad_accounts?business_id=",
-      "https://business.facebook.com/latest/monetization/monetization_policy_issues/monetization_policy_issues_violations?asset_id=",
-      "https://business.facebook.com/latest/settings/pages?business_id=",
-      "https://business.facebook.com/latest/settings/business_users?business_id=",
-      "https://business.facebook.com/business-support-home",
-      "https://business.facebook.com/billing_hub/accounts?business_id="
-    ]
-  },
-  'menu7': {
-    name: 'FB Page Creator',
-    icon: 'fas fa-plus',
-    links: [
-      "https://www.facebook.com/pages/creation/"
-    ]
-  },
-  'menu9': {
-    name: 'Admins Manager',
-    icon: 'fas fa-user-cog',
-    links: [
-      "https://www.facebook.com/settings/?tab=profile_access"
-    ]
-  },
-  'menu10': {
-    name: 'Moderation Assist',
-    icon: 'fas fa-tools',
-    links: [
-      "https://www.facebook.com/professional_dashboard/moderation_assist"
-    ]
-  }
-};
+// Flag to prevent multiple concurrent context menu updates
+let isUpdatingContextMenus = false;
 
 // Load existing tab IDs from storage when extension loads
 chrome.storage.local.get(['openedTabIds'], function(result) {
@@ -100,20 +11,19 @@ chrome.storage.local.get(['openedTabIds'], function(result) {
   }
 });
 
+// Make sure default-categories.js is imported in the manifest's background section
+importScripts('default-categories.js');
+
 // Initialize context menus when the extension is installed or updated
 chrome.runtime.onInstalled.addListener(() => {
   // First, ensure categories are initialized
   initializeCategories();
   
-  // Create a parent menu item
-  chrome.contextMenus.create({
-    id: 'addToCategory',
-    title: 'Add to LBC Category',
-    contexts: ['page', 'link']
-  });
-  
-  // Load categories and create submenus
-  updateContextMenus();
+  // Wait a bit for categories to be initialized before creating menus
+  setTimeout(() => {
+    // Create context menus
+    createContextMenus();
+  }, 500);
 });
 
 // Function to initialize categories with default values if they don't exist
@@ -121,7 +31,7 @@ function initializeCategories() {
   chrome.storage.local.get(['categories'], (result) => {
     if (!result.categories || Object.keys(result.categories).length === 0) {
       console.log('No categories found in storage, initializing with defaults');
-      chrome.storage.local.set({ categories: defaultCategories }, () => {
+      chrome.storage.local.set({ categories: self.LBC_DEFAULT_CATEGORIES }, () => {
         console.log('Default categories initialized');
       });
     } else {
@@ -130,30 +40,66 @@ function initializeCategories() {
   });
 }
 
-// Function to update context menus based on current categories
-function updateContextMenus() {
-  // First remove existing category submenus
+// Function to create context menus from scratch
+function createContextMenus() {
+  // Don't run if already updating
+  if (isUpdatingContextMenus) {
+    console.log('Context menu update already in progress, skipping');
+    return;
+  }
+  
+  isUpdatingContextMenus = true;
+  
+  // First remove all existing context menus
   chrome.contextMenus.removeAll(() => {
-    // Recreate the parent menu
+    console.log('All existing context menus removed');
+    
+    // Create the parent menu
     chrome.contextMenus.create({
       id: 'addToCategory',
       title: 'Add to LBC Category',
       contexts: ['page', 'link']
-    });
-    
-    // Get current categories from storage
-    chrome.storage.local.get(['categories'], (result) => {
-      const categories = result.categories || defaultCategories;
+    }, () => {
+      if (chrome.runtime.lastError) {
+        console.error('Error creating parent menu:', chrome.runtime.lastError);
+      }
       
-      // Create a submenu item for each category
-      Object.keys(categories).forEach(menuId => {
-        const category = categories[menuId];
-        chrome.contextMenus.create({
-          id: `category-${menuId}`,
-          parentId: 'addToCategory',
-          title: category.name,
-          contexts: ['page', 'link']
+      // Get categories from storage
+      chrome.storage.local.get(['categories'], (result) => {
+        const categories = result.categories || self.LBC_DEFAULT_CATEGORIES;
+        const categoryIds = Object.keys(categories);
+        
+        // Create submenu for each category
+        let createdCount = 0;
+        categoryIds.forEach((menuId, index) => {
+          const category = categories[menuId];
+          
+          chrome.contextMenus.create({
+            id: `category-${menuId}`,
+            parentId: 'addToCategory',
+            title: category.name,
+            contexts: ['page', 'link']
+          }, () => {
+            if (chrome.runtime.lastError) {
+              console.error(`Error creating submenu for ${category.name}:`, chrome.runtime.lastError);
+            } else {
+              createdCount++;
+              console.log(`Created submenu for category: ${category.name}`);
+              
+              // Mark as complete when all menus have been created
+              if (createdCount === categoryIds.length) {
+                console.log('All context menus created successfully');
+                isUpdatingContextMenus = false;
+              }
+            }
+          });
         });
+        
+        // If there are no categories, release the lock
+        if (categoryIds.length === 0) {
+          console.log('No categories to create submenus for');
+          isUpdatingContextMenus = false;
+        }
       });
     });
   });
@@ -162,7 +108,8 @@ function updateContextMenus() {
 // Listen for storage changes to update context menus when categories are modified
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'local' && changes.categories) {
-    updateContextMenus();
+    console.log('Categories changed, updating context menus');
+    createContextMenus();
   }
 });
 
@@ -180,7 +127,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 // Function to add a URL to a category
 function addUrlToCategory(menuId, url) {
   chrome.storage.local.get(['categories'], (result) => {
-    const categories = result.categories || defaultCategories;
+    const categories = result.categories || self.LBC_DEFAULT_CATEGORIES;
     
     if (categories[menuId]) {
       // Check if the URL is already in the category
