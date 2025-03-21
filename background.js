@@ -1,6 +1,97 @@
 // Store opened tab IDs in persistent storage
 let openedTabs = new Set();
 
+// Default categories data for initialization
+const defaultCategories = {
+  'menu1': {
+    name: 'Page Checker',
+    icon: 'fas fa-check',
+    links: [
+      "https://www.facebook.com/account_status",
+      "https://www.facebook.com/support/?tab_type=APPEALS",
+      "https://www.facebook.com/settings/?tab=profile_recommendations&show_recommendable_nux=0",
+      "https://www.facebook.com/settings/?tab=profile_management_history"
+    ]
+  },
+  'menu2': {
+    name: 'Profile Checker',
+    icon: 'fas fa-user',
+    links: [
+      "https://www.facebook.com/account_status",
+      "https://www.facebook.com/accountquality",
+      "https://business.facebook.com/billing_hub/payment_activity?asset_id=",
+      "https://www.facebook.com/id/hub/",
+      "https://business.facebook.com/latest/monetization/monetization_policy_issues/monetization_policy_issues_violations?asset_id=",
+      "https://www.facebook.com/support/?tab_type=APPEALS",
+      "https://www.facebook.com/settings/identity_confirmation/",
+      "https://www.facebook.com/primary_location/info?_rdc=2&_rdr",
+      "https://adsmanager.facebook.com/adsmanager/manage/ad_account_settings/ad_account_setup",
+      "https://business.facebook.com/business-support-home/contact-support",
+      "https://adsmanager.facebook.com/adsmanager/manage/accounts?act="
+    ]
+  },
+  'menu3': {
+    name: 'New Account Checker',
+    icon: 'fas fa-broom',
+    links: [
+      "https://www.facebook.com/profile_status/?referrer=profile_settings",
+      "https://accountscenter.facebook.com/personal_info",
+      "https://www.facebook.com/your_information/?tab=your_information&tile=personal_info_grouping",
+      "https://accountscenter.facebook.com/password_and_security",
+      "https://www.facebook.com/notifications",
+      "https://www.facebook.com/business-support-home/"
+    ]
+  },
+  'menu4': {
+    name: 'Country Restriction',
+    icon: 'fas fa-globe',
+    links: [
+      "https://www.facebook.com/settings/?tab=followers_and_public_content"
+    ]
+  },
+  'menu5': {
+    name: 'FB Group Creator',
+    icon: 'fas fa-users',
+    links: [
+      "https://www.facebook.com/groups/create/"
+    ]
+  },
+  'menu6': {
+    name: 'BM Checker',
+    icon: 'fas fa-briefcase',
+    links: [
+      "https://business.facebook.com/billing_hub/payment_activity?asset_id=",
+      "https://business.facebook.com/latest/settings/ad_accounts?business_id=",
+      "https://business.facebook.com/latest/monetization/monetization_policy_issues/monetization_policy_issues_violations?asset_id=",
+      "https://business.facebook.com/latest/settings/pages?business_id=",
+      "https://business.facebook.com/latest/settings/business_users?business_id=",
+      "https://business.facebook.com/business-support-home",
+      "https://business.facebook.com/billing_hub/accounts?business_id="
+    ]
+  },
+  'menu7': {
+    name: 'FB Page Creator',
+    icon: 'fas fa-plus',
+    links: [
+      "https://www.facebook.com/pages/creation/"
+    ]
+  },
+  'menu9': {
+    name: 'Admins Manager',
+    icon: 'fas fa-user-cog',
+    links: [
+      "https://www.facebook.com/settings/?tab=profile_access"
+    ]
+  },
+  'menu10': {
+    name: 'Moderation Assist',
+    icon: 'fas fa-tools',
+    links: [
+      "https://www.facebook.com/professional_dashboard/moderation_assist"
+    ]
+  }
+};
+
 // Load existing tab IDs from storage when extension loads
 chrome.storage.local.get(['openedTabIds'], function(result) {
   if (result.openedTabIds) {
@@ -8,6 +99,119 @@ chrome.storage.local.get(['openedTabIds'], function(result) {
     console.log('Loaded tab IDs from storage:', Array.from(openedTabs));
   }
 });
+
+// Initialize context menus when the extension is installed or updated
+chrome.runtime.onInstalled.addListener(() => {
+  // First, ensure categories are initialized
+  initializeCategories();
+  
+  // Create a parent menu item
+  chrome.contextMenus.create({
+    id: 'addToCategory',
+    title: 'Add to LBC Category',
+    contexts: ['page', 'link']
+  });
+  
+  // Load categories and create submenus
+  updateContextMenus();
+});
+
+// Function to initialize categories with default values if they don't exist
+function initializeCategories() {
+  chrome.storage.local.get(['categories'], (result) => {
+    if (!result.categories || Object.keys(result.categories).length === 0) {
+      console.log('No categories found in storage, initializing with defaults');
+      chrome.storage.local.set({ categories: defaultCategories }, () => {
+        console.log('Default categories initialized');
+      });
+    } else {
+      console.log('Categories already exist in storage');
+    }
+  });
+}
+
+// Function to update context menus based on current categories
+function updateContextMenus() {
+  // First remove existing category submenus
+  chrome.contextMenus.removeAll(() => {
+    // Recreate the parent menu
+    chrome.contextMenus.create({
+      id: 'addToCategory',
+      title: 'Add to LBC Category',
+      contexts: ['page', 'link']
+    });
+    
+    // Get current categories from storage
+    chrome.storage.local.get(['categories'], (result) => {
+      const categories = result.categories || defaultCategories;
+      
+      // Create a submenu item for each category
+      Object.keys(categories).forEach(menuId => {
+        const category = categories[menuId];
+        chrome.contextMenus.create({
+          id: `category-${menuId}`,
+          parentId: 'addToCategory',
+          title: category.name,
+          contexts: ['page', 'link']
+        });
+      });
+    });
+  });
+}
+
+// Listen for storage changes to update context menus when categories are modified
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'local' && changes.categories) {
+    updateContextMenus();
+  }
+});
+
+// Handle context menu clicks
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId.startsWith('category-')) {
+    const menuId = info.menuItemId.replace('category-', '');
+    const url = info.linkUrl || info.pageUrl;
+    
+    // Add the URL to the selected category
+    addUrlToCategory(menuId, url);
+  }
+});
+
+// Function to add a URL to a category
+function addUrlToCategory(menuId, url) {
+  chrome.storage.local.get(['categories'], (result) => {
+    const categories = result.categories || defaultCategories;
+    
+    if (categories[menuId]) {
+      // Check if the URL is already in the category
+      if (!categories[menuId].links.includes(url)) {
+        // Add the URL to the category
+        categories[menuId].links.push(url);
+        
+        // Save the updated categories
+        chrome.storage.local.set({ categories }, () => {
+          // Show a notification that the URL was added
+          chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'icon.png',
+            title: 'URL Added',
+            message: `Added to category: ${categories[menuId].name}`,
+            priority: 0
+          });
+        });
+      } else {
+        // Show notification that URL already exists
+        chrome.notifications.create({
+          type: 'basic',
+          iconUrl: 'icon.png',
+          title: 'URL Already Exists',
+          message: `This URL is already in category: ${categories[menuId].name}`,
+          priority: 0
+        });
+      }
+    }
+  });
+}
 
 // Helper function to save tab IDs to storage
 function saveTabIds() {
