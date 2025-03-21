@@ -1,23 +1,22 @@
 // Categories management module for settings
-window.SettingsCategories = (function() {
+window.SettingsCategories = (() => {
   // Load categories from storage or use defaults
-  function loadCategories() {
-    chrome.storage.local.get(['categories'], (result) => {
-      const categories = result.categories || window.SettingsData.defaultCategories;
+  const loadCategories = () => {
+    chrome.storage.local.get(['categories'], ({ categories }) => {
+      const finalCategories = categories || window.SettingsData.defaultCategories;
       const container = document.getElementById('categories-container');
       container.innerHTML = ''; // Clear container
       
       // Create UI for each category
-      Object.keys(categories).forEach(menuId => {
-        const category = categories[menuId];
+      Object.entries(finalCategories).forEach(([menuId, category]) => {
         const categoryElement = createCategoryElement(menuId, category);
         container.appendChild(categoryElement);
       });
     });
-  }
+  };
 
   // Create a category element with its links
-  function createCategoryElement(menuId, category) {
+  const createCategoryElement = (menuId, category) => {
     const categoryDiv = document.createElement('div');
     categoryDiv.className = 'category';
     categoryDiv.dataset.menuId = menuId;
@@ -49,7 +48,7 @@ window.SettingsCategories = (function() {
     categoryDiv.appendChild(linksContainer);
     
     // Add each link
-    category.links.forEach((link, index) => {
+    category.links.forEach((link) => {
       const linkItem = createLinkItem(link);
       linksContainer.appendChild(linkItem);
     });
@@ -65,25 +64,26 @@ window.SettingsCategories = (function() {
     categoryDiv.appendChild(addLinkButton);
     
     return categoryDiv;
-  }
+  };
 
   // Restore default links for a specific category
-  function restoreDefaultLinks(menuId, categoryElement) {
-    if (window.SettingsData.defaultCategories[menuId]) {
+  const restoreDefaultLinks = (menuId, categoryElement) => {
+    const defaultCategory = window.SettingsData.defaultCategories[menuId];
+    if (defaultCategory) {
       // Show confirmation dialog
-      if (confirm(`Are you sure you want to restore default links for "${window.SettingsData.defaultCategories[menuId].name}"? This will replace all your custom links for this category.`)) {
+      if (confirm(`Are you sure you want to restore default links for "${defaultCategory.name}"? This will replace all your custom links for this category.`)) {
         const linksContainer = categoryElement.querySelector('.links-container');
         linksContainer.innerHTML = ''; // Clear existing links
         
         // Add default links back
-        window.SettingsData.defaultCategories[menuId].links.forEach(link => {
+        defaultCategory.links.forEach(link => {
           const linkItem = createLinkItem(link);
           linksContainer.appendChild(linkItem);
         });
         
         // Show confirmation message
         const savedMessage = document.getElementById('saved-message');
-        savedMessage.textContent = `Default links restored for ${window.SettingsData.defaultCategories[menuId].name}`;
+        savedMessage.textContent = `Default links restored for ${defaultCategory.name}`;
         savedMessage.style.display = 'block';
         setTimeout(() => {
           savedMessage.textContent = 'Settings saved successfully!';
@@ -91,10 +91,10 @@ window.SettingsCategories = (function() {
         }, 3000);
       }
     }
-  }
+  };
 
   // Create a link input item
-  function createLinkItem(link) {
+  const createLinkItem = (link) => {
     const linkItem = document.createElement('div');
     linkItem.className = 'link-item';
     
@@ -113,27 +113,23 @@ window.SettingsCategories = (function() {
     linkItem.appendChild(deleteButton);
     
     return linkItem;
-  }
+  };
 
   // Get categories from the DOM for saving
-  function getCategories() {
+  const getCategories = () => {
     const categories = {};
     
     // Get all categories
-    const categoryElements = document.querySelectorAll('.category');
-    categoryElements.forEach(categoryElement => {
+    document.querySelectorAll('.category').forEach(categoryElement => {
       const menuId = categoryElement.dataset.menuId;
-      const name = categoryElement.querySelector('.category-title').textContent.trim();
-      const icon = categoryElement.querySelector('.category-title i').className;
+      const [icon, name] = Array.from(categoryElement.querySelector('.category-title').childNodes)
+        .filter(node => node.nodeType !== Node.TEXT_NODE)
+        .map(node => node.className || node.textContent.trim());
       
       // Get all links for this category
-      const links = [];
-      const linkInputs = categoryElement.querySelectorAll('.link-input');
-      linkInputs.forEach(input => {
-        if (input.value.trim()) {
-          links.push(input.value.trim());
-        }
-      });
+      const links = Array.from(categoryElement.querySelectorAll('.link-input'))
+        .map(input => input.value.trim())
+        .filter(Boolean);
       
       categories[menuId] = {
         name,
@@ -143,7 +139,7 @@ window.SettingsCategories = (function() {
     });
     
     return categories;
-  }
+  };
   
   // Public API
   return {

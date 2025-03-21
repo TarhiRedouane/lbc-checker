@@ -3,6 +3,7 @@
   "manifest_version": 3,
   "name": "LBC Checker",
   "version": "1.3",
+  "description": "A Chrome extension for managing and checking multiple Facebook links",
   "background": {
     "service_worker": "background.js"
   },

@@ -54,15 +54,15 @@ const defaultLinks = {
 };
 
 // Open links function that uses stored links or defaults
-function executeLinks(menuId) {
+const executeLinks = (menuId) => {
   console.log('Getting links for menu:', menuId);
   
   // Get links from storage
-  chrome.storage.local.get(['categories'], function(result) {
+  chrome.storage.local.get(['categories'], ({ categories }) => {
     let links;
     
-    if (result.categories && result.categories[menuId] && result.categories[menuId].links) {
-      links = result.categories[menuId].links;
+    if (categories?.[menuId]?.links) {
+      links = categories[menuId].links;
       console.log('Found stored links:', links);
     } else {
       links = defaultLinks[menuId];
@@ -70,21 +70,20 @@ function executeLinks(menuId) {
     }
     
     // Send message to background script to open links
-    chrome.runtime.sendMessage({ action: 'openLinks', links: links });
+    chrome.runtime.sendMessage({ action: 'openLinks', links });
   });
-}
+};
 
 // Initialize event listeners when the DOM is fully loaded
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', () => {
   // Add click event listeners for each menu item
-  const menuItems = document.querySelectorAll('.menu-item');
-  menuItems.forEach(item => {
-    item.addEventListener('click', function() {
-      if (this.id === 'settings-button') {
+  document.querySelectorAll('.menu-item').forEach(item => {
+    item.addEventListener('click', () => {
+      if (item.id === 'settings-button') {
         chrome.runtime.sendMessage({ action: 'openSettings' });
         window.close(); // Close popup
       } else {
-        executeLinks(this.id);
+        executeLinks(item.id);
       }
     });
   });

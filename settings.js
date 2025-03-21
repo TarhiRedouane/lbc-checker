@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Save all settings function
-function saveSettings() {
+const saveSettings = () => {
   // Get values from all modules
   const categories = window.SettingsCategories.getCategories();
   const generalSettings = window.SettingsGeneral.getGeneralSettings();
@@ -33,7 +33,7 @@ function saveSettings() {
   console.log('Settings saved:', {
     sequentialMode: generalSettings.sequentialMode,
     openDelay: generalSettings.openDelay,
-    reminders: reminders
+    reminders
   });
 
   // Save all settings to Chrome storage
@@ -54,4 +54,4 @@ function saveSettings() {
     // Schedule reminders with alarms
     window.SettingsReminders.scheduleReminders(reminders);
   });
-}
+};

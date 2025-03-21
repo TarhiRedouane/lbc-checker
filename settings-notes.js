@@ -1,17 +1,17 @@
 // Notes module for managing user notes
-window.SettingsNotes = (function() {
+window.SettingsNotes = (() => {
   // Load notes from storage
-  function loadNotes() {
-    chrome.storage.local.get(['notes'], (result) => {
+  const loadNotes = () => {
+    chrome.storage.local.get(['notes'], ({ notes }) => {
       const notesTextarea = document.getElementById('notes-content');
-      if (result.notes) {
-        notesTextarea.value = result.notes;
+      if (notes) {
+        notesTextarea.value = notes;
       }
     });
-  }
+  };
 
   // Setup auto-save functionality for notes
-  function setupAutoSave() {
+  const setupAutoSave = () => {
     const notesTextarea = document.getElementById('notes-content');
     const autoSaveIndicator = document.getElementById('auto-save-indicator');
     let saveTimeout;
@@ -34,12 +34,10 @@ window.SettingsNotes = (function() {
         });
       }, 500);
     });
-  }
+  };
 
   // Get notes content
-  function getNotes() {
-    return document.getElementById('notes-content').value;
-  }
+  const getNotes = () => document.getElementById('notes-content').value;
   
   // Public API
   return {

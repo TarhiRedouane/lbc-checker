@@ -1,19 +1,19 @@
 // General settings module
-window.SettingsGeneral = (function() {
+window.SettingsGeneral = (() => {
   // Load general settings from storage
-  function loadGeneralSettings() {
-    chrome.storage.local.get(['sequentialMode', 'openDelay'], (result) => {
+  const loadGeneralSettings = () => {
+    chrome.storage.local.get(['sequentialMode', 'openDelay'], ({ sequentialMode, openDelay }) => {
       // Sequential mode toggle
       const sequentialModeToggle = document.getElementById('sequential-mode');
-      sequentialModeToggle.checked = result.sequentialMode === true;
+      sequentialModeToggle.checked = sequentialMode === true;
       
       // Open delay input
       const openDelayInput = document.getElementById('open-delay');
-      openDelayInput.value = result.openDelay || 500; // Default to 500ms if not set
+      openDelayInput.value = openDelay || 500; // Default to 500ms if not set
 
       console.log('Settings loaded:', {
-        sequentialMode: result.sequentialMode,
-        openDelay: result.openDelay || 500
+        sequentialMode,
+        openDelay: openDelay || 500
       });
     });
 
@@ -29,15 +29,13 @@ window.SettingsGeneral = (function() {
         openDelay: parseInt(e.target.value, 10) || 0
       });
     });
-  }
+  };
 
   // Get general settings from the DOM for saving
-  function getGeneralSettings() {
-    return {
-      sequentialMode: document.getElementById('sequential-mode').checked,
-      openDelay: parseInt(document.getElementById('open-delay').value, 10) || 0
-    };
-  }
+  const getGeneralSettings = () => ({
+    sequentialMode: document.getElementById('sequential-mode').checked,
+    openDelay: parseInt(document.getElementById('open-delay').value, 10) || 0
+  });
 
   // Public API
   return {

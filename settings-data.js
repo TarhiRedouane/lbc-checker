@@ -3,7 +3,8 @@
 
 // Export the data for use in other modules
 window.SettingsData = {
+  // Use getter to ensure we always get the latest default categories
   get defaultCategories() {
-    return window.LBC_DEFAULT_CATEGORIES || {};
+    return window.LBC_DEFAULT_CATEGORIES ?? {};
   }
 };

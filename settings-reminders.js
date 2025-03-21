@@ -1,9 +1,9 @@
 // Reminders module for scheduled notifications
-window.SettingsReminders = (function() {
+window.SettingsReminders = (() => {
   // Load reminders from storage or create empty array
-  function loadReminders() {
+  const loadReminders = () => {
     chrome.storage.local.get(['reminders'], (result) => {
-      const reminders = result.reminders || [];
+      const { reminders = [] } = result;
       const container = document.getElementById('reminders-container');
       container.innerHTML = ''; // Clear container
       
@@ -18,10 +18,10 @@ window.SettingsReminders = (function() {
         addNewReminder();
       }
     });
-  }
+  };
 
   // Create a new reminder element
-  function addNewReminder() {
+  const addNewReminder = () => {
     const reminder = {
       categoryId: 'menu1', // Default to first category
       time: '09:00',
@@ -34,10 +34,10 @@ window.SettingsReminders = (function() {
     
     const reminderElement = createReminderElement(reminder, currentCount);
     document.getElementById('reminders-container').appendChild(reminderElement);
-  }
+  };
 
   // Create a reminder element with its settings
-  function createReminderElement(reminder, index) {
+  const createReminderElement = (reminder, index) => {
     const reminderDiv = document.createElement('div');
     reminderDiv.className = 'reminder-item';
     reminderDiv.dataset.index = index;
@@ -51,7 +51,7 @@ window.SettingsReminders = (function() {
     
     // We need to populate the dropdown with all categories
     chrome.storage.local.get(['categories'], (result) => {
-      const categories = result.categories || window.SettingsData.defaultCategories;
+      const { categories = window.SettingsData.defaultCategories } = result;
       
       Object.keys(categories).forEach(menuId => {
         const category = categories[menuId];
@@ -142,10 +142,10 @@ window.SettingsReminders = (function() {
     reminderDiv.appendChild(deleteButton);
     
     return reminderDiv;
-  }
+  };
 
   // Get reminders from the DOM for saving
-  function getReminders() {
+  const getReminders = () => {
     const reminders = [];
     const reminderElements = document.querySelectorAll('.reminder-item');
     
@@ -172,10 +172,10 @@ window.SettingsReminders = (function() {
     });
     
     return reminders;
-  }
+  };
 
   // Schedule reminders with Chrome alarms
-  function scheduleReminders(reminders) {
+  const scheduleReminders = (reminders) => {
     // First clear all existing reminder alarms
     chrome.alarms.clearAll(() => {
       console.log('Cleared all existing alarms');
@@ -200,10 +200,10 @@ window.SettingsReminders = (function() {
         });
       }
     });
-  }
+  };
 
   // Schedule an alarm for a specific reminder
-  function scheduleAlarmForReminder(alarmName, reminder) {
+  const scheduleAlarmForReminder = (alarmName, reminder) => {
     // Get the current time
     const now = new Date();
     
@@ -250,19 +250,19 @@ window.SettingsReminders = (function() {
     
     // Create the alarm
     chrome.alarms.create(alarmName, {
-      delayInMinutes: delayInMinutes,
+      delayInMinutes,
       periodInMinutes: 60 * 24 // Daily check
     });
     
     console.log(`Scheduled alarm ${alarmName} for ${scheduledTime.toLocaleString()} (in ${delayInMinutes.toFixed(2)} minutes)`);
-  }
+  };
 
   // Setup handler for the add reminder button
-  function setupEventHandlers() {
+  const setupEventHandlers = () => {
     document.getElementById('add-reminder').addEventListener('click', () => {
       addNewReminder();
     });
-  }
+  };
 
   // Public API
   return {
