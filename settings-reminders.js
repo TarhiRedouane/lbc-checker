@@ -29,7 +29,10 @@ window.SettingsReminders = (function() {
       days: [1, 2, 3, 4, 5] // Monday to Friday by default
     };
     
-    const reminderElement = createReminderElement(reminder);
+    // Get current number of reminders to assign proper index
+    const currentCount = document.querySelectorAll('.reminder-item').length;
+    
+    const reminderElement = createReminderElement(reminder, currentCount);
     document.getElementById('reminders-container').appendChild(reminderElement);
   }
 
@@ -100,7 +103,8 @@ window.SettingsReminders = (function() {
     const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S']; // Sun to Sat
     
     for (let i = 0; i < 7; i++) {
-      const dayId = `day-${index !== undefined ? index : 'new'}-${i}`;
+      // Use a more unique ID format that includes the actual reminder index
+      const dayId = `day-reminder-${index}-${i}`;
       
       const dayInput = document.createElement('input');
       dayInput.type = 'checkbox';
@@ -108,6 +112,8 @@ window.SettingsReminders = (function() {
       dayInput.className = 'day-checkbox';
       dayInput.checked = reminder.days ? reminder.days.includes(i) : false;
       dayInput.value = i;
+      dayInput.dataset.reminderIndex = index; // Store reminder index as a data attribute
+      dayInput.dataset.dayIndex = i; // Store day index as a data attribute
       
       const dayLabel = document.createElement('label');
       dayLabel.htmlFor = dayId;
