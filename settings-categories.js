@@ -2,13 +2,14 @@
 window.SettingsCategories = (() => {
   // Load categories from storage or use defaults
   const loadCategories = () => {
-    chrome.storage.local.get(['categories'], ({ categories }) => {
-      const finalCategories = categories || window.SettingsData.defaultCategories;
+    chrome.storage.local.get(['categories'], (result) => {
+      const categories = result.categories || window.SettingsData.defaultCategories;
       const container = document.getElementById('categories-container');
       container.innerHTML = ''; // Clear container
       
       // Create UI for each category
-      Object.entries(finalCategories).forEach(([menuId, category]) => {
+      Object.keys(categories).forEach(menuId => {
+        const category = categories[menuId];
         const categoryElement = createCategoryElement(menuId, category);
         container.appendChild(categoryElement);
       });
@@ -48,7 +49,7 @@ window.SettingsCategories = (() => {
     categoryDiv.appendChild(linksContainer);
     
     // Add each link
-    category.links.forEach((link) => {
+    category.links.forEach(link => {
       const linkItem = createLinkItem(link);
       linksContainer.appendChild(linkItem);
     });
@@ -68,22 +69,21 @@ window.SettingsCategories = (() => {
 
   // Restore default links for a specific category
   const restoreDefaultLinks = (menuId, categoryElement) => {
-    const defaultCategory = window.SettingsData.defaultCategories[menuId];
-    if (defaultCategory) {
+    if (window.SettingsData.defaultCategories[menuId]) {
       // Show confirmation dialog
-      if (confirm(`Are you sure you want to restore default links for "${defaultCategory.name}"? This will replace all your custom links for this category.`)) {
+      if (confirm(`Are you sure you want to restore default links for "${window.SettingsData.defaultCategories[menuId].name}"? This will replace all your custom links for this category.`)) {
         const linksContainer = categoryElement.querySelector('.links-container');
         linksContainer.innerHTML = ''; // Clear existing links
         
         // Add default links back
-        defaultCategory.links.forEach(link => {
+        window.SettingsData.defaultCategories[menuId].links.forEach(link => {
           const linkItem = createLinkItem(link);
           linksContainer.appendChild(linkItem);
         });
         
         // Show confirmation message
         const savedMessage = document.getElementById('saved-message');
-        savedMessage.textContent = `Default links restored for ${defaultCategory.name}`;
+        savedMessage.textContent = `Default links restored for ${window.SettingsData.defaultCategories[menuId].name}`;
         savedMessage.style.display = 'block';
         setTimeout(() => {
           savedMessage.textContent = 'Settings saved successfully!';
@@ -120,16 +120,20 @@ window.SettingsCategories = (() => {
     const categories = {};
     
     // Get all categories
-    document.querySelectorAll('.category').forEach(categoryElement => {
+    const categoryElements = document.querySelectorAll('.category');
+    categoryElements.forEach(categoryElement => {
       const menuId = categoryElement.dataset.menuId;
-      const [icon, name] = Array.from(categoryElement.querySelector('.category-title').childNodes)
-        .filter(node => node.nodeType !== Node.TEXT_NODE)
-        .map(node => node.className || node.textContent.trim());
+      const name = categoryElement.querySelector('.category-title').textContent.trim();
+      const icon = categoryElement.querySelector('.category-title i').className;
       
       // Get all links for this category
-      const links = Array.from(categoryElement.querySelectorAll('.link-input'))
-        .map(input => input.value.trim())
-        .filter(Boolean);
+      const links = [];
+      const linkInputs = categoryElement.querySelectorAll('.link-input');
+      linkInputs.forEach(input => {
+        if (input.value.trim()) {
+          links.push(input.value.trim());
+        }
+      });
       
       categories[menuId] = {
         name,
