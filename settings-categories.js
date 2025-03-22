@@ -1,89 +1,83 @@
-// Categories management module for settings
-window.SettingsCategories = (() => {
-  // Load categories from storage or use defaults
-  const loadCategories = () => {
-    chrome.storage.local.get(['categories'], (result) => {
-      const categories = result.categories || window.SettingsData.defaultCategories;
-      const container = document.getElementById('categories-container');
-      container.innerHTML = ''; // Clear container
-      
-      // Create UI for each category
-      Object.keys(categories).forEach(menuId => {
-        const category = categories[menuId];
-        const categoryElement = createCategoryElement(menuId, category);
-        container.appendChild(categoryElement);
-      });
-    });
-  };
+// Import SettingsData for default categories
+import SettingsData from './settings-data.js';
 
-  // Create a category element with its links
-  const createCategoryElement = (menuId, category) => {
+// Categories management class for settings
+export class SettingsCategories {
+  constructor() {
+    this.container = document.getElementById('categories-container');
+  }
+
+  async loadCategories() {
+    const { categories } = await this.getStorageData(['categories']);
+    const finalCategories = categories || SettingsData.defaultCategories;
+    this.container.innerHTML = ''; // Clear container
+    
+    // Create UI for each category
+    Object.keys(finalCategories).forEach(menuId => {
+      const category = finalCategories[menuId];
+      const categoryElement = this.createCategoryElement(menuId, category);
+      this.container.appendChild(categoryElement);
+    });
+  }
+
+  createCategoryElement(menuId, category) {
     const categoryDiv = document.createElement('div');
     categoryDiv.className = 'category';
     categoryDiv.dataset.menuId = menuId;
     
-    // Create the category header with title and actions
     const headerDiv = document.createElement('div');
     headerDiv.className = 'category-header';
     
-    // Create the category title
     const titleDiv = document.createElement('div');
     titleDiv.className = 'category-title';
     titleDiv.innerHTML = `<i class="${category.icon}"></i> ${category.name}`;
     headerDiv.appendChild(titleDiv);
     
-    // Create restore defaults button
     const restoreButton = document.createElement('button');
     restoreButton.className = 'restore-defaults';
     restoreButton.innerHTML = '<i class="fas fa-undo-alt"></i> Restore Default Links';
     restoreButton.addEventListener('click', () => {
-      restoreDefaultLinks(menuId, categoryDiv);
+      this.restoreDefaultLinks(menuId, categoryDiv);
     });
     headerDiv.appendChild(restoreButton);
     
     categoryDiv.appendChild(headerDiv);
     
-    // Create the links container
     const linksContainer = document.createElement('div');
     linksContainer.className = 'links-container';
     categoryDiv.appendChild(linksContainer);
     
-    // Add each link
     category.links.forEach(link => {
-      const linkItem = createLinkItem(link);
+      const linkItem = this.createLinkItem(link);
       linksContainer.appendChild(linkItem);
     });
     
-    // Add button to add a new link
     const addLinkButton = document.createElement('button');
     addLinkButton.className = 'add-link';
     addLinkButton.innerHTML = '<i class="fas fa-plus"></i> Add Link';
     addLinkButton.addEventListener('click', () => {
-      const newLinkItem = createLinkItem('');
+      const newLinkItem = this.createLinkItem('');
       linksContainer.appendChild(newLinkItem);
     });
     categoryDiv.appendChild(addLinkButton);
     
     return categoryDiv;
-  };
+  }
 
-  // Restore default links for a specific category
-  const restoreDefaultLinks = (menuId, categoryElement) => {
-    if (window.SettingsData.defaultCategories[menuId]) {
-      // Show confirmation dialog
-      if (confirm(`Are you sure you want to restore default links for "${window.SettingsData.defaultCategories[menuId].name}"? This will replace all your custom links for this category.`)) {
+  restoreDefaultLinks(menuId, categoryElement) {
+    const defaultCategory = SettingsData.defaultCategories[menuId];
+    if (defaultCategory) {
+      if (confirm(`Are you sure you want to restore default links for "${defaultCategory.name}"? This will replace all your custom links for this category.`)) {
         const linksContainer = categoryElement.querySelector('.links-container');
-        linksContainer.innerHTML = ''; // Clear existing links
+        linksContainer.innerHTML = '';
         
-        // Add default links back
-        window.SettingsData.defaultCategories[menuId].links.forEach(link => {
-          const linkItem = createLinkItem(link);
+        defaultCategory.links.forEach(link => {
+          const linkItem = this.createLinkItem(link);
           linksContainer.appendChild(linkItem);
         });
         
-        // Show confirmation message
         const savedMessage = document.getElementById('saved-message');
-        savedMessage.textContent = `Default links restored for ${window.SettingsData.defaultCategories[menuId].name}`;
+        savedMessage.textContent = `Default links restored for ${defaultCategory.name}`;
         savedMessage.style.display = 'block';
         setTimeout(() => {
           savedMessage.textContent = 'Settings saved successfully!';
@@ -91,10 +85,9 @@ window.SettingsCategories = (() => {
         }, 3000);
       }
     }
-  };
+  }
 
-  // Create a link input item
-  const createLinkItem = (link) => {
+  createLinkItem(link) {
     const linkItem = document.createElement('div');
     linkItem.className = 'link-item';
     
@@ -113,20 +106,17 @@ window.SettingsCategories = (() => {
     linkItem.appendChild(deleteButton);
     
     return linkItem;
-  };
+  }
 
-  // Get categories from the DOM for saving
-  const getCategories = () => {
+  getCategories() {
     const categories = {};
     
-    // Get all categories
     const categoryElements = document.querySelectorAll('.category');
     categoryElements.forEach(categoryElement => {
       const menuId = categoryElement.dataset.menuId;
       const name = categoryElement.querySelector('.category-title').textContent.trim();
       const icon = categoryElement.querySelector('.category-title i').className;
       
-      // Get all links for this category
       const links = [];
       const linkInputs = categoryElement.querySelectorAll('.link-input');
       linkInputs.forEach(input => {
@@ -143,11 +133,22 @@ window.SettingsCategories = (() => {
     });
     
     return categories;
-  };
-  
-  // Public API
-  return {
-    loadCategories,
-    getCategories
-  };
-})();
+  }
+
+  getStorageData(keys) {
+    return new Promise(resolve => {
+      chrome.storage.local.get(keys, resolve);
+    });
+  }
+
+  static getInstance() {
+    if (!this.instance) {
+      this.instance = new SettingsCategories();
+    }
+    return this.instance;
+  }
+}
+
+// Create singleton instance
+const settingsCategories = SettingsCategories.getInstance();
+export default settingsCategories;

@@ -1,14 +1,21 @@
-// Main settings controller that orchestrates all modules
-document.addEventListener('DOMContentLoaded', () => {
+// Import all module instances
+import settingsCategories from './settings-categories.js';
+import settingsGeneral from './settings-general.js';
+import settingsNotes from './settings-notes.js';
+import settingsReminders from './settings-reminders.js';
+import { initDarkMode } from './darkmode.js';
+
+// Initialize settings on DOM load
+document.addEventListener('DOMContentLoaded', async () => {
   // Initialize all settings modules
-  window.SettingsCategories.loadCategories();
-  window.SettingsGeneral.loadGeneralSettings();
-  window.SettingsNotes.loadNotes();
-  window.SettingsReminders.loadReminders();
-  window.SettingsReminders.setupEventHandlers();
+  await settingsCategories.loadCategories();
+  await settingsGeneral.loadGeneralSettings();
+  await settingsNotes.loadNotes();
+  await settingsReminders.loadReminders();
+  settingsReminders.setupEventHandlers();
   
   // Initialize notes auto-save
-  window.SettingsNotes.setupAutoSave();
+  settingsNotes.setupAutoSave();
   
   // Event listeners
   document.getElementById('save-settings').addEventListener('click', saveSettings);
@@ -22,12 +29,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Save all settings function
-const saveSettings = () => {
+const saveSettings = async () => {
   // Get values from all modules
-  const categories = window.SettingsCategories.getCategories();
-  const generalSettings = window.SettingsGeneral.getGeneralSettings();
-  const notes = window.SettingsNotes.getNotes();
-  const reminders = window.SettingsReminders.getReminders();
+  const categories = settingsCategories.getCategories();
+  const generalSettings = settingsGeneral.getGeneralSettings();
+  const notes = settingsNotes.getNotes();
+  const reminders = settingsReminders.getReminders();
   
   // Log the settings being saved
   console.log('Settings saved:', {
@@ -37,21 +44,23 @@ const saveSettings = () => {
   });
 
   // Save all settings to Chrome storage
-  chrome.storage.local.set({
-    categories,
-    sequentialMode: generalSettings.sequentialMode,
-    openDelay: generalSettings.openDelay,
-    notes,
-    reminders
-  }, () => {
-    // Show saved message
-    const savedMessage = document.getElementById('saved-message');
-    savedMessage.style.display = 'block';
-    setTimeout(() => {
-      savedMessage.style.display = 'none';
-    }, 3000);
-    
-    // Schedule reminders with alarms
-    window.SettingsReminders.scheduleReminders(reminders);
+  await new Promise(resolve => {
+    chrome.storage.local.set({
+      categories,
+      sequentialMode: generalSettings.sequentialMode,
+      openDelay: generalSettings.openDelay,
+      notes,
+      reminders
+    }, resolve);
   });
+  
+  // Show saved message
+  const savedMessage = document.getElementById('saved-message');
+  savedMessage.style.display = 'block';
+  setTimeout(() => {
+    savedMessage.style.display = 'none';
+  }, 3000);
+  
+  // Schedule reminders with alarms
+  settingsReminders.scheduleReminders(reminders);
 };

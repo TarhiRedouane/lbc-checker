@@ -1,41 +1,54 @@
-// Common dark mode functionality
-const initDarkMode = (isPopup = false) => {
-  const modeToggle = document.getElementById('mode-toggle');
-  const body = document.body;
-  
-  // Load user preference from storage
-  chrome.storage.local.get(['darkMode'], ({ darkMode = false }) => {
-    // Apply the mode based on saved preference
-    if (darkMode) {
-      body.classList.remove('light-mode');
-      body.classList.add('dark-mode');
-      modeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-    } else {
-      body.classList.add('light-mode');
-      body.classList.remove('dark-mode');
-      modeToggle.innerHTML = '<i class="fas fa-moon"></i>';
-    }
-  });
-  
-  // Toggle dark/light mode
-  modeToggle.addEventListener('click', () => {
-    const isCurrentlyLight = body.classList.contains('light-mode');
-    
-    if (isCurrentlyLight) {
-      // Switch to dark mode
-      body.classList.remove('light-mode');
-      body.classList.add('dark-mode');
-      modeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-      chrome.storage.local.set({ darkMode: true });
-    } else {
-      // Switch to light mode
-      body.classList.add('light-mode');
-      body.classList.remove('dark-mode');
-      modeToggle.innerHTML = '<i class="fas fa-moon"></i>';
-      chrome.storage.local.set({ darkMode: false });
-    }
-  });
-};
+// Dark mode management class
+export class DarkMode {
+  constructor(isPopup = false) {
+    this.modeToggle = document.getElementById('mode-toggle');
+    this.body = document.body;
+    this.isPopup = isPopup;
+  }
 
-// Export the function for use in other files
-window.initDarkMode = initDarkMode;
+  async initialize() {
+    // Load user preference from storage
+    const { darkMode = false } = await this.getStorageData(['darkMode']);
+    this.applyTheme(darkMode);
+    this.setupEventListeners();
+  }
+
+  applyTheme(isDark) {
+    if (isDark) {
+      this.body.classList.remove('light-mode');
+      this.body.classList.add('dark-mode');
+      this.modeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+    } else {
+      this.body.classList.add('light-mode');
+      this.body.classList.remove('dark-mode');
+      this.modeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+    }
+  }
+
+  setupEventListeners() {
+    this.modeToggle.addEventListener('click', () => {
+      const isCurrentlyLight = this.body.classList.contains('light-mode');
+      this.applyTheme(isCurrentlyLight);
+      chrome.storage.local.set({ darkMode: isCurrentlyLight });
+    });
+  }
+
+  getStorageData(keys) {
+    return new Promise(resolve => {
+      chrome.storage.local.get(keys, resolve);
+    });
+  }
+
+  static getInstance(isPopup = false) {
+    if (!this.instance) {
+      this.instance = new DarkMode(isPopup);
+    }
+    return this.instance;
+  }
+}
+
+// Helper function to initialize dark mode
+export const initDarkMode = (isPopup = false) => {
+  const darkMode = DarkMode.getInstance(isPopup);
+  darkMode.initialize();
+};
