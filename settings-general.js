@@ -1,47 +1,61 @@
-// General settings module
-window.SettingsGeneral = (function() {
-  // Load general settings from storage
-  function loadGeneralSettings() {
-    chrome.storage.local.get(['sequentialMode', 'openDelay'], (result) => {
-      // Sequential mode toggle
-      const sequentialModeToggle = document.getElementById('sequential-mode');
-      sequentialModeToggle.checked = result.sequentialMode === true;
-      
-      // Open delay input
-      const openDelayInput = document.getElementById('open-delay');
-      openDelayInput.value = result.openDelay || 500; // Default to 500ms if not set
+// General settings class
+export class SettingsGeneral {
+  constructor() {
+    this.sequentialModeToggle = document.getElementById('sequential-mode');
+    this.openDelayInput = document.getElementById('open-delay');
+    this.setupEventListeners();
+  }
 
-      console.log('Settings loaded:', {
-        sequentialMode: result.sequentialMode,
-        openDelay: result.openDelay || 500
-      });
+  async loadGeneralSettings() {
+    const { sequentialMode, openDelay } = await this.getStorageData(['sequentialMode', 'openDelay']);
+    
+    // Sequential mode toggle
+    this.sequentialModeToggle.checked = sequentialMode === true;
+    
+    // Open delay input
+    this.openDelayInput.value = openDelay || 500; // Default to 500ms if not set
+
+    console.log('Settings loaded:', {
+      sequentialMode,
+      openDelay: openDelay || 500
     });
+  }
 
-    // Add change event listeners for real-time logging
-    document.getElementById('sequential-mode').addEventListener('change', (e) => {
+  setupEventListeners() {
+    this.sequentialModeToggle.addEventListener('change', (e) => {
       console.log('Sequential mode changed:', {
         sequentialMode: e.target.checked
       });
     });
 
-    document.getElementById('open-delay').addEventListener('input', (e) => {
+    this.openDelayInput.addEventListener('input', (e) => {
       console.log('Delay value changed:', {
         openDelay: parseInt(e.target.value, 10) || 0
       });
     });
   }
 
-  // Get general settings from the DOM for saving
-  function getGeneralSettings() {
+  getGeneralSettings() {
     return {
-      sequentialMode: document.getElementById('sequential-mode').checked,
-      openDelay: parseInt(document.getElementById('open-delay').value, 10) || 0
+      sequentialMode: this.sequentialModeToggle.checked,
+      openDelay: parseInt(this.openDelayInput.value, 10) || 0
     };
   }
 
-  // Public API
-  return {
-    loadGeneralSettings,
-    getGeneralSettings
-  };
-})();
+  getStorageData(keys) {
+    return new Promise(resolve => {
+      chrome.storage.local.get(keys, resolve);
+    });
+  }
+
+  static getInstance() {
+    if (!this.instance) {
+      this.instance = new SettingsGeneral();
+    }
+    return this.instance;
+  }
+}
+
+// Create singleton instance
+const settingsGeneral = SettingsGeneral.getInstance();
+export default settingsGeneral;

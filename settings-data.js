@@ -1,9 +1,11 @@
-// Import default categories from shared file
-// This file will set window.LBC_DEFAULT_CATEGORIES with the default categories data
+// Import default categories for initialization
+import { defaultCategories } from './default-categories.js';
 
-// Export the data for use in other modules
-window.SettingsData = {
-  get defaultCategories() {
-    return window.LBC_DEFAULT_CATEGORIES || {};
+// Settings data management class
+export class SettingsData {
+  static get defaultCategories() {
+    return defaultCategories;
   }
-};
+}
+
+export default SettingsData;

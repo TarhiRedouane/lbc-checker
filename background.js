@@ -1,410 +1,374 @@
-// Store opened tab IDs in persistent storage
-let openedTabs = new Set();
-// Flag to prevent multiple concurrent context menu updates
-let isUpdatingContextMenus = false;
+// Import default categories
+import { defaultCategories } from './default-categories.js';
 
-// Load existing tab IDs from storage when extension loads
-chrome.storage.local.get(['openedTabIds'], function(result) {
-  if (result.openedTabIds) {
-    openedTabs = new Set(result.openedTabIds);
-    console.log('Loaded tab IDs from storage:', Array.from(openedTabs));
+// Background service class
+class BackgroundService {
+  constructor() {
+    this.openedTabs = new Set();
+    this.isUpdatingContextMenus = false;
+    this.init();
   }
-});
 
-// Make sure default-categories.js is imported in the manifest's background section
-importScripts('default-categories.js');
+  async init() {
+    // Load existing tab IDs from storage
+    const { openedTabIds } = await this.getStorageData(['openedTabIds']);
+    if (openedTabIds) {
+      this.openedTabs.clear();
+      openedTabIds.forEach(id => this.openedTabs.add(id));
+      console.log('Loaded tab IDs from storage:', Array.from(this.openedTabs));
+    }
 
-// Initialize context menus when the extension is installed or updated
-chrome.runtime.onInstalled.addListener(() => {
-  // First, ensure categories are initialized
-  initializeCategories();
-  
-  // Wait a bit for categories to be initialized before creating menus
-  setTimeout(() => {
-    // Create context menus
-    createContextMenus();
-  }, 500);
-});
+    // Initialize context menus and event listeners
+    this.setupEventListeners();
+  }
 
-// Function to initialize categories with default values if they don't exist
-function initializeCategories() {
-  chrome.storage.local.get(['categories'], (result) => {
-    if (!result.categories || Object.keys(result.categories).length === 0) {
+  setupEventListeners() {
+    // Extension installation/update handler
+    chrome.runtime.onInstalled.addListener(() => {
+      this.initializeCategories();
+      setTimeout(() => this.createContextMenus(), 500);
+    });
+
+    // Storage changes handler
+    chrome.storage.onChanged.addListener((changes, namespace) => {
+      if (namespace === 'local' && changes.categories) {
+        console.log('Categories changed, updating context menus');
+        this.createContextMenus();
+      }
+    });
+
+    // Context menu click handler
+    chrome.contextMenus.onClicked.addListener((info, tab) => {
+      if (info.menuItemId.startsWith('category-')) {
+        const menuId = info.menuItemId.replace('category-', '');
+        const url = info.linkUrl || info.pageUrl;
+        this.addUrlToCategory(menuId, url);
+      }
+    });
+
+    // Message handler
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+      switch (request.action) {
+        case 'openLinks':
+          this.handleOpenLinks(request);
+          return true;
+        case 'closeAllTabs':
+          this.closeAllTabs();
+          break;
+        case 'openSettings':
+          chrome.tabs.create({ url: 'settings.html' });
+          break;
+        case 'openPopup':
+          chrome.action.openPopup();
+          break;
+      }
+    });
+
+    // Tab removal handler
+    chrome.tabs.onRemoved.addListener(tabId => {
+      if (this.openedTabs.has(tabId)) {
+        this.openedTabs.delete(tabId);
+        this.saveTabIds();
+        console.log(`Tab ${tabId} was closed manually and removed from tracking`);
+      }
+    });
+
+    // Alarm handler for reminders
+    chrome.alarms.onAlarm.addListener(alarm => {
+      if (alarm.name.startsWith('reminder-')) {
+        this.handleReminderAlarm(alarm);
+      }
+    });
+
+    // Notification handlers
+    chrome.notifications.onButtonClicked.addListener(this.handleNotificationClick.bind(this));
+    chrome.notifications.onClosed.addListener(this.handleNotificationClosed.bind(this));
+  }
+
+  async initializeCategories() {
+    const { categories } = await this.getStorageData(['categories']);
+    if (!categories || Object.keys(categories).length === 0) {
       console.log('No categories found in storage, initializing with defaults');
-      chrome.storage.local.set({ categories: self.LBC_DEFAULT_CATEGORIES }, () => {
-        console.log('Default categories initialized');
-      });
+      await this.setStorageData({ categories: defaultCategories });
+      console.log('Default categories initialized');
     } else {
       console.log('Categories already exist in storage');
     }
-  });
-}
-
-// Function to create context menus from scratch
-function createContextMenus() {
-  // Don't run if already updating
-  if (isUpdatingContextMenus) {
-    console.log('Context menu update already in progress, skipping');
-    return;
   }
-  
-  isUpdatingContextMenus = true;
-  
-  // First remove all existing context menus
-  chrome.contextMenus.removeAll(() => {
-    console.log('All existing context menus removed');
-    
-    // Create the parent menu
-    chrome.contextMenus.create({
-      id: 'addToCategory',
-      title: 'Add to LBC Category',
-      contexts: ['page', 'link']
-    }, () => {
-      if (chrome.runtime.lastError) {
-        console.error('Error creating parent menu:', chrome.runtime.lastError);
-      }
-      
-      // Get categories from storage
-      chrome.storage.local.get(['categories'], (result) => {
-        const categories = result.categories || self.LBC_DEFAULT_CATEGORIES;
-        const categoryIds = Object.keys(categories);
-        
-        // Create submenu for each category
-        let createdCount = 0;
-        categoryIds.forEach((menuId, index) => {
-          const category = categories[menuId];
-          
-          chrome.contextMenus.create({
-            id: `category-${menuId}`,
-            parentId: 'addToCategory',
-            title: category.name,
-            contexts: ['page', 'link']
-          }, () => {
-            if (chrome.runtime.lastError) {
-              console.error(`Error creating submenu for ${category.name}:`, chrome.runtime.lastError);
-            } else {
-              createdCount++;
-              console.log(`Created submenu for category: ${category.name}`);
-              
-              // Mark as complete when all menus have been created
-              if (createdCount === categoryIds.length) {
-                console.log('All context menus created successfully');
-                isUpdatingContextMenus = false;
-              }
-            }
-          });
-        });
-        
-        // If there are no categories, release the lock
-        if (categoryIds.length === 0) {
-          console.log('No categories to create submenus for');
-          isUpdatingContextMenus = false;
+
+  async createContextMenus() {
+    if (this.isUpdatingContextMenus) {
+      console.log('Context menu update already in progress, skipping');
+      return;
+    }
+
+    this.isUpdatingContextMenus = true;
+
+    try {
+      await this.removeAllContextMenus();
+      await this.createParentMenu();
+      await this.createCategorySubmenus();
+    } catch (error) {
+      console.error('Error creating context menus:', error);
+    } finally {
+      this.isUpdatingContextMenus = false;
+    }
+  }
+
+  removeAllContextMenus() {
+    return new Promise(resolve => {
+      chrome.contextMenus.removeAll(resolve);
+    });
+  }
+
+  createParentMenu() {
+    return new Promise((resolve, reject) => {
+      chrome.contextMenus.create({
+        id: 'addToCategory',
+        title: 'Add to LBC Category',
+        contexts: ['page', 'link']
+      }, () => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+        } else {
+          resolve();
         }
       });
     });
-  });
-}
-
-// Listen for storage changes to update context menus when categories are modified
-chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'local' && changes.categories) {
-    console.log('Categories changed, updating context menus');
-    createContextMenus();
   }
-});
 
-// Handle context menu clicks
-chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId.startsWith('category-')) {
-    const menuId = info.menuItemId.replace('category-', '');
-    const url = info.linkUrl || info.pageUrl;
-    
-    // Add the URL to the selected category
-    addUrlToCategory(menuId, url);
-  }
-});
+  async createCategorySubmenus() {
+    const { categories } = await this.getStorageData(['categories']);
+    const finalCategories = categories || defaultCategories;
 
-// Function to add a URL to a category
-function addUrlToCategory(menuId, url) {
-  chrome.storage.local.get(['categories'], (result) => {
-    const categories = result.categories || self.LBC_DEFAULT_CATEGORIES;
-    
-    if (categories[menuId]) {
-      // Check if the URL is already in the category
-      if (!categories[menuId].links.includes(url)) {
-        // Add the URL to the category
-        categories[menuId].links.push(url);
-        
-        // Save the updated categories
-        chrome.storage.local.set({ categories }, () => {
-          // Show a notification that the URL was added
-          chrome.notifications.create({
-            type: 'basic',
-            iconUrl: 'icon.png',
-            title: 'URL Added',
-            message: `Added to category: ${categories[menuId].name}`,
-            priority: 0
-          });
-        });
-      } else {
-        // Show notification that URL already exists
-        chrome.notifications.create({
-          type: 'basic',
-          iconUrl: 'icon.png',
-          title: 'URL Already Exists',
-          message: `This URL is already in category: ${categories[menuId].name}`,
-          priority: 0
-        });
-      }
-    }
-  });
-}
-
-// Helper function to save tab IDs to storage
-function saveTabIds() {
-  chrome.storage.local.set({
-    openedTabIds: Array.from(openedTabs)
-  }, function() {
-    console.log('Saved tab IDs to storage:', Array.from(openedTabs));
-  });
-}
-
-// Helper function to validate links
-function validateLinks(links) {
-  if (!links || !Array.isArray(links)) {
-    console.error('Invalid links format:', links);
-    return [];
-  }
-  return links;
-}
-
-// Create a promise-based tab creation function
-function createTab(url) {
-  return new Promise((resolve) => {
-    chrome.tabs.create({ url: url.trim() }, (tab) => {
-      openedTabs.add(tab.id);
-      saveTabIds();
-      console.log(`Opened tab ID: ${tab.id} with URL: ${tab.url}`);
-      resolve(tab);
-    });
-  });
-}
-
-// Function to open links sequentially with delay
-async function openLinksSequentially(links, delay = 0) {
-  links = validateLinks(links);
-  console.log(`Starting sequential link opening: ${links.length} links with ${delay}ms delay`);
-  
-  for (let i = 0; i < links.length; i++) {
-    const link = links[i];
-    if (link && typeof link === 'string' && link.trim()) {
-      console.log(`Opening link ${i + 1}/${links.length}: ${link}`);
-      await createTab(link);
-      
-      // Only wait if there are more links to open
-      if (i < links.length - 1 && delay > 0) {
-        console.log(`Waiting ${delay}ms before opening next link...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
-  }
-  console.log('Finished opening all links sequentially');
-}
-
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'openLinks') {
-    chrome.storage.local.get(['sequentialMode', 'openDelay'], function(result) {
-      const sequentialMode = result.sequentialMode || false;
-      const delay = result.openDelay || 0;
-      
-      console.log('Opening links with settings:', {
-        sequentialMode: sequentialMode,
-        delay: delay
-      });
-      
-      const validLinks = validateLinks(request.links);
-      
-      if (validLinks.length === 0) {
-        console.error('No valid links to open');
-        return;
-      }
-      
-      if (sequentialMode && delay > 0) {
-        console.log(`Opening ${validLinks.length} links sequentially with ${delay}ms delay`);
-        openLinksSequentially(validLinks, delay);
-      } else {
-        console.log(`Opening ${validLinks.length} links simultaneously`);
-        // Open all links at once (original behavior)
-        validLinks.forEach(link => {
-          if (link && typeof link === 'string' && link.trim()) {
-            createTab(link);
+    const createSubmenuPromises = Object.entries(finalCategories).map(([menuId, category]) => {
+      return new Promise((resolve, reject) => {
+        chrome.contextMenus.create({
+          id: `category-${menuId}`,
+          parentId: 'addToCategory',
+          title: category.name,
+          contexts: ['page', 'link']
+        }, () => {
+          if (chrome.runtime.lastError) {
+            reject(chrome.runtime.lastError);
+          } else {
+            resolve();
           }
         });
-      }
-    });
-    return true;
-  }
-  else if (request.action === 'closeAllTabs') {
-    console.log('Received closeAllTabs action');
-    console.log('Stored tab IDs to close:', Array.from(openedTabs));
-
-    if (openedTabs.size > 0) {
-      const tabIdsToClose = Array.from(openedTabs);
-      chrome.tabs.remove(tabIdsToClose, () => {
-        if (chrome.runtime.lastError) {
-          console.error(`Error closing tabs by ID: ${chrome.runtime.lastError.message}`);
-        }
-        console.log(`Closed tabs successfully by ID`);
-        openedTabs.clear();
-        saveTabIds();
       });
-    } else {
-      console.log('No stored tab IDs to close');
+    });
+
+    await Promise.all(createSubmenuPromises);
+  }
+
+  async addUrlToCategory(menuId, url) {
+    const { categories } = await this.getStorageData(['categories']);
+    const finalCategories = categories || defaultCategories;
+
+    if (finalCategories[menuId]) {
+      if (!finalCategories[menuId].links.includes(url)) {
+        finalCategories[menuId].links.push(url);
+        await this.setStorageData({ categories: finalCategories });
+        this.showNotification('URL Added', `Added to category: ${finalCategories[menuId].name}`);
+      } else {
+        this.showNotification('URL Already Exists', `This URL is already in category: ${finalCategories[menuId].name}`);
+      }
     }
   }
-  else if (request.action === 'openSettings') {
-    chrome.tabs.create({ url: 'settings.html' });
-  }
-  else if (request.action === 'openPopup') {
-    chrome.action.openPopup();
-  }
-});
 
-// Listen for tab close events to keep our tracking up to date
-chrome.tabs.onRemoved.addListener((tabId) => {
-  if (openedTabs.has(tabId)) {
-    openedTabs.delete(tabId);
-    saveTabIds();
-    console.log(`Tab ${tabId} was closed manually and removed from tracking`);
+  showNotification(title, message, buttons = []) {
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icon.png',
+      title,
+      message,
+      buttons,
+      priority: 0
+    });
   }
-});
 
-// ================ NOTIFICATION SYSTEM ================
+  saveTabIds() {
+    this.setStorageData({
+      openedTabIds: Array.from(this.openedTabs)
+    });
+  }
 
-// Handle alarm events for reminders
-chrome.alarms.onAlarm.addListener((alarm) => {
-  // Check if this is a reminder alarm (they all start with "reminder-")
-  if (alarm.name.startsWith('reminder-')) {
+  validateLinks(links) {
+    if (!Array.isArray(links)) {
+      console.error('Invalid links format:', links);
+      return [];
+    }
+    return links;
+  }
+
+  async createTab(url) {
+    const tab = await new Promise(resolve => {
+      chrome.tabs.create({ url: url.trim() }, resolve);
+    });
+    this.openedTabs.add(tab.id);
+    this.saveTabIds();
+    console.log(`Opened tab ID: ${tab.id} with URL: ${tab.url}`);
+    return tab;
+  }
+
+  async openLinksSequentially(links, delay = 0) {
+    const validLinks = this.validateLinks(links);
+    console.log(`Starting sequential link opening: ${validLinks.length} links with ${delay}ms delay`);
+
+    for (const [index, link] of validLinks.entries()) {
+      if (link?.trim()) {
+        console.log(`Opening link ${index + 1}/${validLinks.length}: ${link}`);
+        await this.createTab(link);
+
+        if (index < validLinks.length - 1 && delay > 0) {
+          console.log(`Waiting ${delay}ms before opening next link...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    console.log('Finished opening all links sequentially');
+  }
+
+  async handleOpenLinks(request) {
+    const { sequentialMode, openDelay = 0 } = await this.getStorageData(['sequentialMode', 'openDelay']);
+    console.log('Opening links with settings:', { sequentialMode, openDelay });
+
+    const validLinks = this.validateLinks(request.links);
+
+    if (validLinks.length === 0) {
+      console.error('No valid links to open');
+      return;
+    }
+
+    if (sequentialMode && openDelay > 0) {
+      console.log(`Opening ${validLinks.length} links sequentially with ${openDelay}ms delay`);
+      await this.openLinksSequentially(validLinks, openDelay);
+    } else {
+      console.log(`Opening ${validLinks.length} links simultaneously`);
+      validLinks.forEach(link => {
+        if (link?.trim()) {
+          this.createTab(link);
+        }
+      });
+    }
+  }
+
+  closeAllTabs() {
+    console.log('Closing all tabs:', Array.from(this.openedTabs));
+    if (this.openedTabs.size > 0) {
+      chrome.tabs.remove(Array.from(this.openedTabs), () => {
+        if (chrome.runtime.lastError) {
+          console.error(`Error closing tabs: ${chrome.runtime.lastError.message}`);
+        }
+        this.openedTabs.clear();
+        this.saveTabIds();
+      });
+    }
+  }
+
+  async handleReminderAlarm(alarm) {
     console.log(`Alarm triggered: ${alarm.name}`);
     
-    // Get the reminder data associated with this alarm
-    chrome.storage.local.get([alarm.name, 'categories'], (result) => {
-      const reminder = result[alarm.name];
-      const categories = result.categories;
-      
-      if (reminder && categories) {
-        const category = categories[reminder.categoryId];
-        
-        if (category) {
-          console.log(`Showing notification for category: ${category.name}`);
-          
-          // Create notification
-          chrome.notifications.create({
-            type: 'basic',
-            iconUrl: 'icon.png',
-            title: 'LBC Checker Reminder',
-            message: `Time to check: ${category.name}`,
-            buttons: [
-              { title: 'Open Now' },
-              { title: 'Dismiss' }
-            ],
-            priority: 2,
-            requireInteraction: true // Notification persists until user interacts with it
-          }, (notificationId) => {
-            // Store the reminder and category info with the notification ID
-            chrome.storage.local.set({
-              ['notification-' + notificationId]: {
-                reminderAlarm: alarm.name,
-                categoryId: reminder.categoryId,
-                time: new Date().toLocaleString()
-              }
-            }, () => {
-              console.log(`Stored notification data for ${notificationId}`);
-            });
-          });
-          
-          // Reschedule the alarm for the next applicable day
-          // The existing alarm is daily, but let's make sure it's only on the days selected
-          scheduleNextAlarm(alarm.name, reminder);
-        }
+    const { [alarm.name]: reminder, categories } = await this.getStorageData([alarm.name, 'categories']);
+    if (reminder && categories) {
+      const category = categories[reminder.categoryId];
+      if (category) {
+        console.log(`Showing notification for category: ${category.name}`);
+        this.showReminderNotification(alarm.name, category);
+        this.scheduleNextAlarm(alarm.name, reminder);
       }
+    }
+  }
+
+  showReminderNotification(alarmName, category) {
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icon.png',
+      title: 'LBC Checker Reminder',
+      message: `Time to check: ${category.name}`,
+      buttons: [
+        { title: 'Open Now' },
+        { title: 'Dismiss' }
+      ],
+      priority: 2,
+      requireInteraction: true
+    }, notificationId => {
+      this.setStorageData({
+        [`notification-${notificationId}`]: {
+          reminderAlarm: alarmName,
+          categoryId: category.id,
+          time: new Date().toLocaleString()
+        }
+      });
     });
   }
-});
 
-// Function to schedule the next alarm based on selected days
-function scheduleNextAlarm(alarmName, reminder) {
-  // Get today's day of week (0 = Sunday, 1 = Monday, etc.)
-  const today = new Date().getDay();
-  
-  // Find the next day that is enabled for this reminder
-  let daysToAdd = 1;
-  let nextDay = (today + daysToAdd) % 7;
-  
-  while (!reminder.days.includes(nextDay) && daysToAdd < 7) {
-    daysToAdd++;
-    nextDay = (today + daysToAdd) % 7;
-  }
-  
-  console.log(`Next alarm for ${alarmName} will be in ${daysToAdd} days (${nextDay})`);
-}
-
-// Handle notification button clicks
-chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) => {
-  console.log(`Notification ${notificationId} button ${buttonIndex} clicked`);
-  
-  chrome.storage.local.get(['notification-' + notificationId, 'categories'], (result) => {
-    const notificationData = result['notification-' + notificationId];
+  async handleNotificationClick(notificationId, buttonIndex) {
+    console.log(`Notification ${notificationId} button ${buttonIndex} clicked`);
     
-    if (notificationData) {
-      if (buttonIndex === 0) { // Open Now button
-        const categoryId = notificationData.categoryId;
-        const categories = result.categories;
+    const { [`notification-${notificationId}`]: notificationData, categories } = 
+      await this.getStorageData([`notification-${notificationId}`, 'categories']);
+
+    if (notificationData && buttonIndex === 0) { // Open Now button
+      const categoryId = notificationData.categoryId;
+      const category = categories?.[categoryId];
+
+      if (category?.links?.length > 0) {
+        const { sequentialMode, openDelay = 0 } = await this.getStorageData(['sequentialMode', 'openDelay']);
         
-        if (categories && categories[categoryId]) {
-          // Get the links for this category
-          const links = categories[categoryId].links;
-          
-          if (links && links.length > 0) {
-            // Instead of sending a message, directly open the links
-            chrome.storage.local.get(['sequentialMode', 'openDelay'], function(settings) {
-              const sequentialMode = settings.sequentialMode || false;
-              const delay = settings.openDelay || 0;
-              
-              console.log('Opening links from notification with settings:', {
-                sequentialMode: sequentialMode,
-                delay: delay
-              });
-              
-              if (sequentialMode && delay > 0) {
-                console.log(`Opening ${links.length} links sequentially with ${delay}ms delay`);
-                openLinksSequentially(links, delay);
-              } else {
-                console.log(`Opening ${links.length} links simultaneously`);
-                links.forEach(link => {
-                  if (link && typeof link === 'string' && link.trim()) {
-                    createTab(link);
-                  }
-                });
-              }
-            });
-          }
+        if (sequentialMode && openDelay > 0) {
+          await this.openLinksSequentially(category.links, openDelay);
+        } else {
+          category.links.forEach(link => {
+            if (link?.trim()) {
+              this.createTab(link);
+            }
+          });
         }
       }
-      
-      // Clear the notification data
-      chrome.storage.local.remove(['notification-' + notificationId]);
     }
-  });
-  
-  // Close the notification
-  chrome.notifications.clear(notificationId);
-});
 
-// Handle notification closed event (dismiss)
-chrome.notifications.onClosed.addListener((notificationId) => {
-  console.log(`Notification ${notificationId} closed`);
-  
-  // Clean up storage
-  chrome.storage.local.remove(['notification-' + notificationId]);
-});
+    await this.setStorageData({ [`notification-${notificationId}`]: null });
+    chrome.notifications.clear(notificationId);
+  }
+
+  handleNotificationClosed(notificationId) {
+    console.log(`Notification ${notificationId} closed`);
+    this.setStorageData({ [`notification-${notificationId}`]: null });
+  }
+
+  scheduleNextAlarm(alarmName, reminder) {
+    const today = new Date().getDay();
+    let daysToAdd = 1;
+    let nextDay = (today + daysToAdd) % 7;
+
+    while (!reminder.days.includes(nextDay) && daysToAdd < 7) {
+      daysToAdd++;
+      nextDay = (today + daysToAdd) % 7;
+    }
+
+    console.log(`Next alarm for ${alarmName} will be in ${daysToAdd} days (${nextDay})`);
+  }
+
+  getStorageData(keys) {
+    return new Promise(resolve => {
+      chrome.storage.local.get(keys, resolve);
+    });
+  }
+
+  setStorageData(data) {
+    return new Promise(resolve => {
+      chrome.storage.local.set(data, resolve);
+    });
+  }
+
+  static getInstance() {
+    if (!this.instance) {
+      this.instance = new BackgroundService();
+    }
+    return this.instance;
+  }
+}
+
+// Initialize the background service
+const backgroundService = BackgroundService.getInstance();

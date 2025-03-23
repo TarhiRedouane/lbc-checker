@@ -1,5 +1,5 @@
 // Default categories data - contains all predefined menu categories with their names, icons, and links
-const defaultCategories = {
+export const defaultCategories = {
   'menu1': {
     name: 'Page Checker',
     icon: 'fas fa-check',
@@ -89,12 +89,4 @@ const defaultCategories = {
   }
 };
 
-// For non-module scripts
-if (typeof window !== 'undefined') {
-  window.LBC_DEFAULT_CATEGORIES = defaultCategories;
-}
-
-// For service workers and background scripts
-if (typeof self !== 'undefined') {
-  self.LBC_DEFAULT_CATEGORIES = defaultCategories;
-}
+export default defaultCategories;
